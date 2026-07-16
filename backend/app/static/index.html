@@ -177,6 +177,178 @@
     .scroll { max-height: 280px; overflow: auto; }
     .links { margin-top: 1rem; font-size: 0.8rem; color: var(--muted); }
     .links a { color: var(--accent-deep); }
+    .hdr-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .btn-guide {
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: #fff; border-radius: 8px; padding: .5rem .9rem;
+      font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+    }
+    .btn-guide:hover { filter: brightness(1.05); }
+
+    /* 利用手順パレット（アップロード画像 / FX UsageGuide と同系） */
+    .usage-guide-panel {
+      --ug-accent: #6366f1;
+      --ug-accent-soft: rgba(99, 102, 241, 0.12);
+      --ug-panel: #ffffff;
+      --ug-text: #1e293b;
+      --ug-muted: #64748b;
+      --ug-border: rgba(99, 102, 241, 0.2);
+      position: fixed; z-index: 1200; width: min(440px, calc(100vw - 24px));
+      border-radius: 12px; border: 1px solid var(--ug-border);
+      background: var(--ug-panel);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 12px 40px rgba(49, 46, 129, 0.18);
+      overflow: hidden; user-select: none; touch-action: none;
+      color: var(--ug-text);
+    }
+    .usage-guide-panel::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 1;
+      background: linear-gradient(90deg, var(--ug-accent), #7c3aed);
+    }
+    .usage-guide-panel.is-dragging {
+      border-color: rgba(99, 102, 241, 0.45);
+      box-shadow: 0 16px 48px rgba(49, 46, 129, 0.28);
+    }
+    .usage-guide-panel.hidden { display: none; }
+    .usage-guide-panel.is-collapsed .usage-guide-body { display: none; }
+    .usage-guide-panel.is-collapsed .usage-guide-header { border-bottom: none; }
+    .usage-guide-header {
+      display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+      padding: .75rem .85rem; background: rgba(255,255,255,.92);
+      border-bottom: 1px solid var(--ug-border); cursor: grab;
+    }
+    .usage-guide-panel.is-dragging .usage-guide-header { cursor: grabbing; }
+    .usage-guide-header-text {
+      display: flex; align-items: center; gap: .5rem; min-width: 0; flex: 1;
+    }
+    .usage-guide-drag-icon { color: var(--ug-muted); font-size: .82rem; line-height: 1; }
+    .usage-guide-header-titles { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+    .usage-guide-header-titles strong {
+      display: block; font-size: .95rem; font-weight: 700; letter-spacing: -.03em;
+      color: var(--ug-text); line-height: 1.2;
+    }
+    .usage-guide-header-titles strong::before {
+      content: ""; width: 4px; height: 1.05em; border-radius: 4px;
+      background: linear-gradient(180deg, var(--ug-accent), #7c3aed);
+      display: inline-block; margin-right: .45rem; vertical-align: -.15em;
+    }
+    .usage-guide-header-sub {
+      font-size: .62rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--ug-muted);
+    }
+    .usage-guide-drag-hint {
+      font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+      color: var(--ug-accent); white-space: nowrap;
+    }
+    .usage-guide-header-actions { display: flex; gap: .35rem; flex-shrink: 0; }
+    .usage-guide-toggle {
+      width: 2rem; height: 2rem; border-radius: 999px;
+      border: 1px solid var(--ug-border); background: #fff; color: var(--ug-accent);
+      font-size: .82rem; line-height: 1; cursor: pointer;
+    }
+    .usage-guide-toggle:hover { background: var(--ug-accent-soft); }
+    .usage-guide-body {
+      max-height: min(78vh, 720px); overflow-y: auto; padding: .9rem .95rem 1rem;
+      background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(245,243,255,.4) 100%);
+    }
+    .usage-guide-hero {
+      margin-bottom: .75rem; padding: .85rem .9rem; border-radius: 12px;
+      border: 1px solid rgba(99, 102, 241, 0.22);
+      background:
+        radial-gradient(ellipse at top right, rgba(124, 58, 237, 0.12), transparent 55%),
+        linear-gradient(135deg, rgba(255,255,255,.95), rgba(237,233,254,.88));
+    }
+    .usage-guide-hero-kicker {
+      margin: 0 0 .35rem; font-size: .62rem; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase; color: #7c3aed;
+    }
+    .usage-guide-hero-title {
+      margin: 0 0 .35rem; font-size: .92rem; font-weight: 800;
+      line-height: 1.35; letter-spacing: -.02em; color: #1e1b4b;
+    }
+    .usage-guide-hero-lead {
+      margin: 0 0 .55rem; font-size: .78rem; line-height: 1.55; color: var(--ug-text);
+    }
+    .usage-guide-stack { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .usage-guide-stack-pill {
+      padding: .18rem .45rem; border-radius: 999px;
+      border: 1px solid rgba(99, 102, 241, 0.18);
+      background: rgba(255,255,255,.85); font-size: .62rem; font-weight: 700; color: #4338ca;
+    }
+    .usage-guide-featured {
+      margin-bottom: .75rem; padding: .75rem .8rem; border-radius: 10px;
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      background: linear-gradient(135deg, rgba(237,233,254,.98), rgba(196,181,253,.35));
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+    }
+    .usage-guide-featured-head {
+      display: flex; align-items: center; gap: .45rem; margin-bottom: .45rem;
+    }
+    .usage-guide-featured-badge {
+      flex-shrink: 0; padding: .12rem .45rem; border-radius: 999px;
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: #fff; font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .usage-guide-featured-head strong {
+      font-size: .82rem; font-weight: 700; line-height: 1.35; color: #312e81;
+    }
+    .usage-guide-featured p {
+      margin: 0 0 .35rem; font-size: .8rem; line-height: 1.55; color: var(--ug-text);
+    }
+    .usage-guide-items {
+      margin: .35rem 0 0; padding: 0 0 0 1.1rem; list-style: disc;
+    }
+    .usage-guide-items li {
+      margin: .2rem 0; font-size: .78rem; line-height: 1.5; color: var(--ug-muted);
+    }
+    .usage-guide-diagram { margin: 0 0 .75rem; }
+    .usage-guide-diagram figcaption {
+      margin: 0 0 .35rem; font-size: .68rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; color: var(--ug-muted);
+    }
+    .usage-guide-diagram pre {
+      margin: 0; padding: .65rem .7rem; border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.12); background: #0f172a; color: #c7d2fe;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .62rem; line-height: 1.45; overflow-x: auto; white-space: pre;
+    }
+    .usage-guide-section { margin-bottom: .75rem; }
+    .usage-guide-section-label {
+      margin: 0 0 .45rem; padding: .25rem .5rem; border-radius: 6px;
+      background: rgba(99, 102, 241, 0.1); font-size: .68rem; font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase; color: #4338ca;
+    }
+    .usage-guide-steps {
+      margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .65rem;
+    }
+    .usage-guide-steps > li {
+      padding: .65rem .7rem; border-radius: 8px; border: 1px solid var(--ug-border);
+      background: rgba(255,255,255,.85);
+    }
+    .usage-guide-steps strong {
+      display: block; font-size: .78rem; font-weight: 600; margin-bottom: .3rem;
+      letter-spacing: .04em; text-transform: uppercase; color: var(--ug-accent);
+    }
+    .usage-guide-steps p {
+      margin: 0 0 .35rem; font-size: .82rem; line-height: 1.55; color: var(--ug-text);
+    }
+    .usage-guide-footer {
+      margin: .85rem 0 0; padding: .55rem .65rem; border-radius: 8px;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      background: linear-gradient(135deg, rgba(237,233,254,.8), rgba(224,231,255,.6));
+      font-size: .72rem; color: #4338ca; line-height: 1.5;
+    }
+    .usage-guide-body code {
+      font-family: ui-monospace, Consolas, monospace; font-size: .8em;
+      background: rgba(255,255,255,.9); border: 1px solid rgba(99,102,241,.2);
+      border-radius: 4px; padding: .05rem .3rem; color: #4338ca;
+    }
+    @media (max-width: 640px) {
+      .usage-guide-drag-hint { display: none; }
+      .usage-guide-panel { width: calc(100vw - 24px); }
+    }
   </style>
 </head>
 <body>
@@ -187,9 +359,12 @@
         <h1>Ledger Guide</h1>
         <p class="sub">PostgreSQL のサンプルデータを読み込み、ナレッジ連携・行動分析・対話を表示します。</p>
       </div>
-      <div class="badge">
-        <div style="color:var(--muted)">API / DB</div>
-        <div id="health">checking...</div>
+      <div class="hdr-actions">
+        <button type="button" class="btn-guide" id="openGuide" aria-haspopup="dialog">利用手順</button>
+        <div class="badge">
+          <div style="color:var(--muted)">API / DB</div>
+          <div id="health">checking...</div>
+        </div>
       </div>
     </header>
 
@@ -279,6 +454,115 @@
       </section>
     </div>
   </div>
+
+  <aside id="usageGuide" class="usage-guide-panel" role="dialog" aria-labelledby="usageGuideTitle" aria-modal="false" style="right:24px;top:72px;left:auto;">
+    <header class="usage-guide-header" id="usageGuideHandle" title="ドラッグで移動">
+      <div class="usage-guide-header-text">
+        <span class="usage-guide-drag-icon" aria-hidden="true">☰</span>
+        <div class="usage-guide-header-titles">
+          <strong id="usageGuideTitle">利用手順</strong>
+          <span class="usage-guide-header-sub">ARCHITECTURE &amp; OPS</span>
+        </div>
+        <span class="usage-guide-drag-hint">ドラッグで移動</span>
+      </div>
+      <div class="usage-guide-header-actions">
+        <button type="button" class="usage-guide-toggle" id="usageGuideCollapse" title="折りたたむ" aria-label="折りたたむ" aria-expanded="true">▼</button>
+        <button type="button" class="usage-guide-toggle" id="usageGuideClose" title="閉じる" aria-label="閉じる">✕</button>
+      </div>
+    </header>
+    <div class="usage-guide-body" id="usageGuideBody">
+      <div class="usage-guide-hero">
+        <p class="usage-guide-hero-kicker">FINTECH AI PLATFORM</p>
+        <h2 class="usage-guide-hero-title">Ledger Guide — マルチエージェント / RAG 対話</h2>
+        <p class="usage-guide-hero-lead">
+          自然言語操作・行動分析パーソナライズ・ナレッジDB連携を、LangGraph オーケストレーションで統括するデモです。
+          PostgreSQL のサンプルデータを画面に表示し、対話結果をプロファイル学習へ反映します。
+        </p>
+        <div class="usage-guide-stack" aria-label="Tech stack">
+          <span class="usage-guide-stack-pill">Python · FastAPI</span>
+          <span class="usage-guide-stack-pill">LangChain · LangGraph</span>
+          <span class="usage-guide-stack-pill">PostgreSQL</span>
+          <span class="usage-guide-stack-pill">RAG</span>
+          <span class="usage-guide-stack-pill">Next.js</span>
+          <span class="usage-guide-stack-pill">Streamlit</span>
+        </div>
+      </div>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">ARCHITECTURE</span>
+          <strong>エンドツーエンド構成</strong>
+        </div>
+        <p>意図分類 → 専門エージェント実行 → 応答統合。ナレッジは PostgreSQL + 埋め込み検索、行動はイベント履歴からプロファイル更新します。</p>
+        <ul class="usage-guide-items">
+          <li>UI — FastAPI 静的画面（本画面）· Next.js · Streamlit</li>
+          <li>API — FastAPI <code>/api/v1/*</code> · Swagger <code>/docs</code></li>
+          <li>Agents — operations · personalization · knowledge（LangGraph）</li>
+          <li>DB — users · behavior_events · knowledge_documents · conversation_*</li>
+        </ul>
+      </article>
+
+      <figure class="usage-guide-diagram" aria-label="Service topology">
+        <figcaption>SERVICE TOPOLOGY</figcaption>
+        <pre>Browser (Ledger Guide)
+   │
+   ▼
+FastAPI :8080
+   ├── /api/v1/chat          → LangGraph Orchestrator
+   ├── /api/v1/dashboard     → PostgreSQL 集計表示
+   ├── /api/v1/seed          → サンプルデータ投入
+   └── /                    → 本サービス画面
+          │
+          ▼
+   PostgreSQL (users / events / knowledge / dialogues)</pre>
+      </figure>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">RECOMMENDED</span>
+          <strong>最短の進め方</strong>
+        </div>
+        <p>初回はサンプルデータ投入から始めると、ナレッジ一覧・行動イベント・対話履歴がすぐに確認できます。</p>
+        <ul class="usage-guide-items">
+          <li>「サンプルデータを投入」で PostgreSQL にデモデータを登録</li>
+          <li>下部のナレッジ DB / 行動イベント表で内容を確認</li>
+          <li>例:「振込手数料について教えて」で knowledge エージェントを実行</li>
+          <li>例:「家計の改善提案をして」で personalization を実行</li>
+          <li>右カラムで Intent / Agents / Activity Score を確認</li>
+        </ul>
+      </article>
+
+      <div class="usage-guide-section">
+        <p class="usage-guide-section-label">詳細利用手順</p>
+        <ol class="usage-guide-steps">
+          <li>
+            <strong>1. 起動確認</strong>
+            <p>API ヘルスと RAG ドキュメント数を画面右上で確認します。</p>
+            <ul class="usage-guide-items">
+              <li>Health: <code>/api/v1/health</code></li>
+              <li>Docs: <code>/docs</code></li>
+            </ul>
+          </li>
+          <li>
+            <strong>2. データ投入</strong>
+            <p>「サンプルデータを投入」または <code>POST /api/v1/seed?force=true</code> でデモデータを登録します。</p>
+          </li>
+          <li>
+            <strong>3. 対話と確認</strong>
+            <p>チャット送信後、オーケストレーション結果とパーソナライズ提案が更新されます。</p>
+          </li>
+          <li>
+            <strong>4. ダッシュボード確認</strong>
+            <p><code>GET /api/v1/dashboard</code> 相当の情報が画面下部テーブルに表示されます。</p>
+          </li>
+        </ol>
+      </div>
+
+      <p class="usage-guide-footer">
+        ヒント: ヘッダーをドラッグしてパレットを移動できます。折りたたみは ▼、再表示は画面右上の「利用手順」ボタンです。
+      </p>
+    </div>
+  </aside>
 
   <script>
     const API = "";
@@ -499,6 +783,110 @@
       chatBootstrapped = false;
       await loadDashboard();
     });
+
+    /* 利用手順パレット: 開閉・折りたたみ・ドラッグ */
+    (function () {
+      const panel = document.getElementById("usageGuide");
+      const handle = document.getElementById("usageGuideHandle");
+      const collapseBtn = document.getElementById("usageGuideCollapse");
+      const closeBtn = document.getElementById("usageGuideClose");
+      const openBtn = document.getElementById("openGuide");
+      if (!panel || !handle) return;
+
+      const STORAGE_KEY = "fintech-usage-guide-v1";
+      let dragging = false;
+      let ox = 0;
+      let oy = 0;
+
+      function saveState() {
+        const rect = panel.getBoundingClientRect();
+        try {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              left: rect.left,
+              top: rect.top,
+              collapsed: panel.classList.contains("is-collapsed"),
+              hidden: panel.classList.contains("hidden"),
+            }),
+          );
+        } catch (_) { /* ignore */ }
+      }
+
+      function restoreState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const s = JSON.parse(raw);
+          if (typeof s.left === "number" && typeof s.top === "number") {
+            panel.style.right = "auto";
+            panel.style.left = Math.max(8, s.left) + "px";
+            panel.style.top = Math.max(8, s.top) + "px";
+          }
+          if (s.collapsed) {
+            panel.classList.add("is-collapsed");
+            collapseBtn.textContent = "▲";
+            collapseBtn.setAttribute("aria-expanded", "false");
+          }
+          if (s.hidden) panel.classList.add("hidden");
+        } catch (_) { /* ignore */ }
+      }
+
+      openBtn.addEventListener("click", () => {
+        panel.classList.remove("hidden", "is-collapsed");
+        collapseBtn.textContent = "▼";
+        collapseBtn.setAttribute("aria-expanded", "true");
+        if (!panel.style.left) {
+          panel.style.right = "24px";
+          panel.style.top = "72px";
+          panel.style.left = "auto";
+        }
+        saveState();
+      });
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        panel.classList.add("hidden");
+        saveState();
+      });
+      collapseBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        panel.classList.toggle("is-collapsed");
+        const collapsed = panel.classList.contains("is-collapsed");
+        collapseBtn.textContent = collapsed ? "▲" : "▼";
+        collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        saveState();
+      });
+
+      handle.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("button")) return;
+        dragging = true;
+        panel.classList.add("is-dragging");
+        const rect = panel.getBoundingClientRect();
+        ox = e.clientX - rect.left;
+        oy = e.clientY - rect.top;
+        panel.style.right = "auto";
+        panel.style.left = rect.left + "px";
+        panel.style.top = rect.top + "px";
+        handle.setPointerCapture(e.pointerId);
+      });
+      handle.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const x = Math.min(window.innerWidth - 80, Math.max(8, e.clientX - ox));
+        const y = Math.min(window.innerHeight - 48, Math.max(8, e.clientY - oy));
+        panel.style.left = x + "px";
+        panel.style.top = y + "px";
+      });
+      const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        panel.classList.remove("is-dragging");
+        saveState();
+      };
+      handle.addEventListener("pointerup", endDrag);
+      handle.addEventListener("pointercancel", endDrag);
+
+      restoreState();
+    })();
 
     refreshHealth();
     loadDashboard();
