@@ -11,9 +11,12 @@ class AgentState(TypedDict):
     external_id: str
     query: str
     intent: str
+    intents: list[str]
     profile_summary: str
     rag_context: str
     agent_outputs: dict[str, str]
+    pending_action: dict[str, Any]
+    citations: list[str]
     final_response: str
     routing_trace: list[str]
     agents_used: list[str]

@@ -1,117 +1,62 @@
-# Fintech AI Platform
+# LLM × マルチエージェント｜金融AIプロダクト
 
-自然言語操作支援・行動分析パーソナライズ・ナレッジ連携 RAG・マルチエージェント・オーケストレーションを備えた Fintech 向け AI 基盤です。
+自然言語での金融操作サポート、行動データに基づくパーソナライズ提案、ナレッジDB連携RAGを、
+**LangGraph マルチエージェント**で統括する Fintech AI プロダクトです。
 
-## 技術スタック
+## プロダクト機能
 
-| 領域 | 技術 |
+| 機能 | 説明 |
 |---|---|
-| Frontend | Next.js + React + TypeScript |
-| API | FastAPI |
-| Ops UI | Streamlit |
-| LLM | LangChain / LangGraph（OpenAI / Google / Mock） |
-| DB | PostgreSQL 16 |
-| Cloud | GCP（Cloud Run / Cloud SQL / GCS / Secret Manager） |
+| マルチエージェント | 複合意図を fan-out（operations / personalization / knowledge）→ synthesize |
+| 自然言語操作 | 残高照会・振込下書き・カード停止（確認ID付き、デモ実行） |
+| パーソナライズ | 行動イベント + 対話履歴から提案生成 |
+| RAG | PostgreSQL ナレッジ + FAISS/コサイン検索 |
+| ダッシュボード | ナレッジ・行動イベント・口座残高を画面表示 |
 
 ## アーキテクチャ
 
 ```text
-User (Next.js / Streamlit)
+User (Web UI / Next.js / Streamlit)
         │
         ▼
-   FastAPI Gateway
+   FastAPI Gateway  (:8080)
         │
         ▼
  LangGraph Orchestrator
-   ├─ Intent Classifier
-   ├─ Operations Agent      … 自然言語 → 操作サポート
-   ├─ Personalization Agent … 行動データ分析・提案
-   └─ Knowledge Agent (RAG) … PostgreSQL ナレッジDB連携
+   ├─ Intent Classifier（複数意図可）
+   ├─ Operations Agent + Finance Toolkit
+   ├─ Personalization Agent
+   ├─ Knowledge Agent (RAG)
+   └─ Synthesizer
         │
         ▼
- PostgreSQL (users / events / dialogues / knowledge / agent_runs)
+ PostgreSQL + FAISS vectorstore
 ```
-
-## デプロイ（Dockerfile）
-
-リポジトリ直下に `Dockerfile` を置いています。Railway 等で
-`couldn't locate the dockerfile at path Dockerfile` となる場合は、
-**Root Directory をリポジトリルート**、**Dockerfile Path を `Dockerfile`** にしてください。
-
-```bash
-docker build -t fintech-api .
-docker run --rm -p 8080:8080 -e DATABASE_URL=... fintech-api
-```
-
-Railway の Postgres プラグインが渡す `DATABASE_URL`（`postgresql://...`）は起動時に自動で `postgresql+asyncpg://...` へ変換されます。
 
 ## クイックスタート
-
-### 1. 前提
-
-- Docker Desktop
-- Python 3.12+（ローカル API 起動時）
-- Node.js 20+
-
-### 2. 環境変数
 
 ```powershell
 cd C:\devlop\Fintech
 copy .env.example .env
+docker compose up -d postgres
+
+cd backend
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 ```
 
-API キーなしでも `LLM_PROVIDER=mock` で動作します。本番相当の応答には:
+- サービス画面: http://127.0.0.1:8080/（利用手順パレット・確認実行 UI 付き）
+- API Docs: http://127.0.0.1:8080/docs
+- PostgreSQL: `127.0.0.1:15432` / `fintech` / `fintech_secret` / `fintech_ai`
+- デモユーザー: `demo-user-001`
+
+API キーなしでも `LLM_PROVIDER=mock` で動作します。
 
 ```env
 LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-```
-
-または
-
-```env
-LLM_PROVIDER=google
-GOOGLE_API_KEY=...
-```
-
-### 3. PostgreSQL + API + Streamlit（Docker）
-
-```powershell
-cd C:\devlop\Fintech
-docker compose up -d --build
-```
-
-- API docs: http://localhost:8080/docs
-- Streamlit: http://localhost:8501
-- PostgreSQL: `localhost:15432` / user=`fintech` / pass=`fintech_secret` / db=`fintech_ai`
-
-### 4. フロントエンド（Next.js）
-
-```powershell
-cd C:\devlop\Fintech\frontend
-copy .env.local.example .env.local
-npm install
-npm run dev
-```
-
-http://localhost:3000
-
-### 5. ローカル Python API（Docker なし）
-
-```powershell
-cd C:\devlop\Fintech
-docker compose up -d postgres
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-デモ行動データの投入:
-
-```powershell
-python -m scripts.seed_events
 ```
 
 ## 主要 API
@@ -119,41 +64,41 @@ python -m scripts.seed_events
 | Method | Path | 説明 |
 |---|---|---|
 | POST | `/api/v1/chat` | マルチエージェント対話 |
-| POST | `/api/v1/events` | 行動イベント登録 |
-| GET | `/api/v1/users/{id}/suggestions` | パーソナライズ提案 |
+| GET | `/api/v1/accounts/{id}` | デモ口座残高 |
+| POST | `/api/v1/actions/confirm` | 振込/カード停止の確定実行 |
+| POST | `/api/v1/actions/cancel` | 下書きキャンセル |
+| GET | `/api/v1/dashboard` | 画面用集計 |
+| POST | `/api/v1/seed` | サンプルデータ投入 |
 | GET/POST | `/api/v1/knowledge` | ナレッジ参照・追加 |
-| POST | `/api/v1/rag/reindex` | RAG インデックス再構築 |
 
-### Chat 例
+### 複合質問の例
 
-```powershell
-curl -X POST http://localhost:8080/api/v1/chat `
-  -H "Content-Type: application/json" `
-  -d '{"message":"振込手数料を教えて","external_id":"demo-user-001"}'
+```json
+{
+  "message": "振込手数料について教えて。あと家計の改善提案もして",
+  "external_id": "demo-user-001"
+}
 ```
 
-## 実装機能マップ
+→ `knowledge` + `personalization` が並列実行され、orchestrator が統合回答します。
 
-1. **自然言語操作サポート** — `operations` エージェント
-2. **行動データ分析・提案** — `personalization` エンジン + エージェント
-3. **ナレッジDB連携対話** — PostgreSQL + RAG パイプライン
-4. **オーケストレーション** — LangGraph による意図分類とルーティング
-5. **パーソナライズ学習** — 行動イベント + 対話履歴からプロファイル更新
-6. **RAG / NLP** — 埋め込み検索 + LLM 回答生成（API キー未設定時は Mock）
+### 振込（確認フロー）
+
+1. 「太郎へ3000円振り込みたい」→ `pending_action`（確認ID）が返る  
+2. `POST /api/v1/actions/confirm` または画面の「確認して実行」
 
 ## ディレクトリ
 
 ```text
 Fintech/
-├── backend/           # FastAPI + LangGraph + RAG
-├── frontend/          # Next.js + React + TS
-├── streamlit_app/     # 運用ダッシュボード
-├── gcp/               # GCP 展開メモ・認証情報置き場
+├── backend/           # FastAPI + LangGraph + RAG + Finance tools
+├── frontend/          # Next.js (オプション)
+├── streamlit_app/     # 運用コンソール
 ├── docker-compose.yml
-└── .env.example
+└── Dockerfile         # Railway 等向け
 ```
 
-## GCP
+## デプロイ
 
-詳細は [`gcp/README.md`](./gcp/README.md) を参照してください。
-"# Fintech" 
+ルート `Dockerfile` + `railway.toml` を同梱。Railway Postgres の `DATABASE_URL` は
+起動時に `postgresql+asyncpg://` へ自動変換されます。

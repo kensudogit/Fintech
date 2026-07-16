@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fintech AI Platform</title>
+  <title>LLM × マルチエージェント｜金融AIプロダクト</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -355,9 +355,9 @@
   <div class="wrap">
     <header>
       <div>
-        <div class="eyebrow">FINTECH AI</div>
-        <h1>Ledger Guide</h1>
-        <p class="sub">PostgreSQL のサンプルデータを読み込み、ナレッジ連携・行動分析・対話を表示します。</p>
+        <div class="eyebrow">LLM × MULTI-AGENT</div>
+        <h1>金融AIプロダクト</h1>
+        <p class="sub">自然言語操作・行動分析提案・ナレッジRAGをマルチエージェントが統括する金融AIデモです。</p>
       </div>
       <div class="hdr-actions">
         <button type="button" class="btn-guide" id="openGuide" aria-haspopup="dialog">利用手順</button>
@@ -405,11 +405,20 @@
           <h2>Orchestration</h2>
           <p>直近のルーティング結果</p>
           <dl>
-            <div><dt>Intent</dt><dd id="intent">—</dd></div>
+            <div><dt>Intents</dt><dd id="intent">—</dd></div>
             <div><dt>Agents</dt><dd id="agents">—</dd></div>
             <div><dt>Latency</dt><dd id="latency">—</dd></div>
             <div><dt>Trace</dt><dd><div class="mono" id="trace">まだ実行されていません</div></dd></div>
           </dl>
+          <div id="pendingBox" style="display:none;margin-top:1rem;padding:.85rem;border-radius:12px;border:1px solid #fcd34d;background:#fffbeb;">
+            <div style="font-weight:700;margin-bottom:.35rem;color:#92400e;">確認待ち操作</div>
+            <div id="pendingSummary" style="font-size:.85rem;color:#78350f;margin-bottom:.65rem;"></div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+              <button type="button" class="primary" id="confirmActionBtn">確認して実行</button>
+              <button type="button" id="cancelActionBtn">キャンセル</button>
+            </div>
+          </div>
+          <div id="balancesBox" style="margin-top:1rem;font-size:.85rem;color:var(--muted);"></div>
         </section>
         <section class="panel">
           <h2>Personalization</h2>
@@ -472,11 +481,11 @@
     </header>
     <div class="usage-guide-body" id="usageGuideBody">
       <div class="usage-guide-hero">
-        <p class="usage-guide-hero-kicker">FINTECH AI PLATFORM</p>
-        <h2 class="usage-guide-hero-title">Ledger Guide — マルチエージェント / RAG 対話</h2>
+        <p class="usage-guide-hero-kicker">LLM × MULTI-AGENT FINTECH</p>
+        <h2 class="usage-guide-hero-title">金融AIプロダクト — マルチエージェント / RAG / 操作確認</h2>
         <p class="usage-guide-hero-lead">
-          自然言語操作・行動分析パーソナライズ・ナレッジDB連携を、LangGraph オーケストレーションで統括するデモです。
-          PostgreSQL のサンプルデータを画面に表示し、対話結果をプロファイル学習へ反映します。
+          複合質問を複数エージェントへ fan-out し、操作は確認ID付き下書き→実行の安全フローで扱います。
+          PostgreSQL ナレッジと行動イベントを画面に可視化します。
         </p>
         <div class="usage-guide-stack" aria-label="Tech stack">
           <span class="usage-guide-stack-pill">Python · FastAPI</span>
@@ -504,17 +513,19 @@
 
       <figure class="usage-guide-diagram" aria-label="Service topology">
         <figcaption>SERVICE TOPOLOGY</figcaption>
-        <pre>Browser (Ledger Guide)
+        <pre>Browser（本画面）
    │
    ▼
-FastAPI :8080
-   ├── /api/v1/chat          → LangGraph Orchestrator
-   ├── /api/v1/dashboard     → PostgreSQL 集計表示
-   ├── /api/v1/seed          → サンプルデータ投入
-   └── /                    → 本サービス画面
+FastAPI
+   ├── /api/v1/chat              → LangGraph（複合意図 fan-out）
+   ├── /api/v1/accounts/{id}     → デモ口座残高
+   ├── /api/v1/actions/confirm   → 振込・カード停止の確定
+   ├── /api/v1/dashboard         → PostgreSQL 集計表示
+   ├── /api/v1/seed              → サンプルデータ投入
+   └── /                         → 本サービス画面
           │
           ▼
-   PostgreSQL (users / events / knowledge / dialogues)</pre>
+   PostgreSQL + FAISS vectorstore</pre>
       </figure>
 
       <article class="usage-guide-featured">
@@ -525,10 +536,10 @@ FastAPI :8080
         <p>初回はサンプルデータ投入から始めると、ナレッジ一覧・行動イベント・対話履歴がすぐに確認できます。</p>
         <ul class="usage-guide-items">
           <li>「サンプルデータを投入」で PostgreSQL にデモデータを登録</li>
-          <li>下部のナレッジ DB / 行動イベント表で内容を確認</li>
-          <li>例:「振込手数料について教えて」で knowledge エージェントを実行</li>
-          <li>例:「家計の改善提案をして」で personalization を実行</li>
-          <li>右カラムで Intent / Agents / Activity Score を確認</li>
+          <li>下部のナレッジ DB / 行動イベント表・口座残高を確認</li>
+          <li>複合例:「振込手数料について教えて。あと家計の改善提案もして」</li>
+          <li>操作例:「残高を教えて」→「太郎に3万円振り込んで」→ 確認実行</li>
+          <li>右カラムで Intents / Agents / Activity Score を確認</li>
         </ul>
       </article>
 
@@ -541,6 +552,7 @@ FastAPI :8080
             <ul class="usage-guide-items">
               <li>Health: <code>/api/v1/health</code></li>
               <li>Docs: <code>/docs</code></li>
+              <li>デモユーザー: <code>demo-user-001</code>（既定）</li>
             </ul>
           </li>
           <li>
@@ -548,15 +560,59 @@ FastAPI :8080
             <p>「サンプルデータを投入」または <code>POST /api/v1/seed?force=true</code> でデモデータを登録します。</p>
           </li>
           <li>
-            <strong>3. 対話と確認</strong>
-            <p>チャット送信後、オーケストレーション結果とパーソナライズ提案が更新されます。</p>
+            <strong>3. マルチエージェント対話</strong>
+            <p>チャット送信後、意図が複数なら専門エージェントが並列実行され、見出し付きで統合回答されます。</p>
+            <ul class="usage-guide-items">
+              <li><code>knowledge</code> — FAQ / 手数料 / 口座開設など</li>
+              <li><code>personalization</code> — 家計改善・おすすめ提案</li>
+              <li><code>operations</code> — 残高・振込下書き・カード停止</li>
+            </ul>
           </li>
           <li>
-            <strong>4. ダッシュボード確認</strong>
-            <p><code>GET /api/v1/dashboard</code> 相当の情報が画面下部テーブルに表示されます。</p>
+            <strong>4. 自然言語操作（確認フロー）</strong>
+            <p>実送金は行いません。危険操作は確認ID付き下書き→「確認して実行」でデモ実行します。</p>
+            <ul class="usage-guide-items">
+              <li>残高:「残高を教えて」</li>
+              <li>振込:「太郎に3万円振り込んで」→ 確認ボックス表示</li>
+              <li>カード:「カードを一時停止して」→ 確認後にデモ停止</li>
+              <li>キャンセル:「キャンセル」または Cancel API</li>
+            </ul>
+          </li>
+          <li>
+            <strong>5. ダッシュボード確認</strong>
+            <p>画面下部にナレッジ・行動イベント・最近の対話・口座残高が表示されます（<code>GET /api/v1/dashboard</code>）。</p>
           </li>
         </ol>
       </div>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">PROMPT EXAMPLES</span>
+          <strong>試してみる発話例</strong>
+        </div>
+        <p>チップをクリックするか、下の文をそのまま送信してください。</p>
+        <ul class="usage-guide-items">
+          <li>振込手数料について教えて。あと家計の改善提案もして</li>
+          <li>残高を教えて</li>
+          <li>太郎に3万円振り込んで</li>
+          <li>カードを一時停止して</li>
+          <li>つみたてNISAの始め方を教えて</li>
+          <li>今月の家計改善を提案して</li>
+        </ul>
+      </article>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">OPS NOTES</span>
+          <strong>注意事項（デモ）</strong>
+        </div>
+        <ul class="usage-guide-items">
+          <li>振込・カード停止はメモリ上のデモ台帳です（プロセス再起動でリセット）</li>
+          <li>API キーなしでも <code>LLM_PROVIDER=mock</code> で動作します</li>
+          <li>本番 LLM 利用時は <code>OPENAI_API_KEY</code> 等を <code>.env</code> に設定</li>
+          <li>PostgreSQL 既定: <code>127.0.0.1:15432</code> / DB <code>fintech_ai</code></li>
+        </ul>
+      </article>
 
       <p class="usage-guide-footer">
         ヒント: ヘッダーをドラッグしてパレットを移動できます。折りたたみは ▼、再表示は画面右上の「利用手順」ボタンです。
@@ -567,15 +623,17 @@ FastAPI :8080
   <script>
     const API = "";
     const prompts = [
-      "振込手数料について教えて",
+      "振込手数料について教えて。あと家計の改善提案もして",
+      "残高を教えて",
+      "太郎へ3000円振り込みたい",
+      "カードを一時停止して",
       "今月の家計改善を提案して",
-      "口座開設の流れは？",
-      "カードを一時停止したい",
     ];
 
     let sessionId = null;
     let loading = false;
     let chatBootstrapped = false;
+    let pendingActionId = null;
 
     const chatEl = document.getElementById("chat");
     const errorEl = document.getElementById("error");
@@ -741,17 +799,86 @@ FastAPI :8080
         const data = await res.json();
         sessionId = data.session_id;
         appendMessage("assistant", data.answer, (data.agents_used || []).join(", ") || "Assistant");
-        document.getElementById("intent").textContent = data.intent || "—";
+        const intents = (data.intents && data.intents.length) ? data.intents : (data.intent ? [data.intent] : []);
+        document.getElementById("intent").textContent = intents.join(" + ") || "—";
         document.getElementById("agents").textContent = (data.agents_used || []).join(" → ") || "—";
         document.getElementById("latency").textContent = data.latency_ms != null ? `${data.latency_ms} ms` : "—";
         document.getElementById("trace").textContent =
           (data.routing_trace || []).join("\n") || "まだ実行されていません";
+        showPending(data.pending_action);
         await loadDashboard();
+        await loadBalances();
       } catch (err) {
         showError(err.message || "送信に失敗しました");
       } finally {
         loading = false;
         document.getElementById("sendBtn").disabled = false;
+      }
+    });
+
+    function showPending(action) {
+      const box = document.getElementById("pendingBox");
+      if (!action || !action.action_id) {
+        box.style.display = "none";
+        pendingActionId = null;
+        return;
+      }
+      pendingActionId = action.action_id;
+      document.getElementById("pendingSummary").textContent =
+        `${action.summary || action.action_type}（ID: ${action.action_id}）`;
+      box.style.display = "block";
+    }
+
+    async function loadBalances() {
+      const id = externalIdEl.value.trim() || "demo-user-001";
+      try {
+        const data = await fetch(`${API}/api/v1/accounts/${encodeURIComponent(id)}`).then((r) => r.json());
+        const lines = (data.accounts || []).map((a) => `${a.name}: ¥${Number(a.balance).toLocaleString()}`);
+        document.getElementById("balancesBox").innerHTML =
+          `<strong style="color:var(--ink)">口座残高（デモ）</strong><br>${lines.join("<br>")}` +
+          `<br>合計: ¥${Number(data.total_balance || 0).toLocaleString()}`;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    document.getElementById("confirmActionBtn").addEventListener("click", async () => {
+      if (!pendingActionId) return;
+      showError("");
+      try {
+        const res = await fetch(`${API}/api/v1/actions/confirm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action_id: pendingActionId,
+            external_id: externalIdEl.value.trim() || "demo-user-001",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.ok === false) throw new Error(data.error || await res.text());
+        appendMessage("assistant", data.message || "実行しました", "operations");
+        showPending(null);
+        await loadBalances();
+      } catch (err) {
+        showError(err.message || "確認実行に失敗しました");
+      }
+    });
+
+    document.getElementById("cancelActionBtn").addEventListener("click", async () => {
+      if (!pendingActionId) return;
+      try {
+        await fetch(`${API}/api/v1/actions/cancel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action_id: pendingActionId,
+            external_id: externalIdEl.value.trim() || "demo-user-001",
+          }),
+        });
+        appendMessage("assistant", "操作をキャンセルしました。", "operations");
+        showPending(null);
+      } catch (err) {
+        showError(err.message || "キャンセルに失敗しました");
       }
     });
 
@@ -890,6 +1017,7 @@ FastAPI :8080
 
     refreshHealth();
     loadDashboard();
+    loadBalances();
   </script>
 </body>
 </html>

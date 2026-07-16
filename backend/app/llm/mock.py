@@ -63,35 +63,55 @@ class MockChatModel:
 
     def _generate(self, content: str) -> str:
         lower = content.lower()
-        if "intent" in lower or "意図" in content:
-            if any(k in content for k in ("手数料", "口座開設", "FAQ", "とは", "教えて", "knowledge", "流れ", "不正")):
-                return "knowledge"
-            if any(k in content for k in ("提案", "おすすめ", "分析", "suggest", "recommend", "節約")):
-                return "personalization"
-            if any(k in content for k in ("振込して", "送金して", "支払いして", "カード停止", "残高確認", "操作", "transfer", "pay")):
-                return "operations"
-            return "knowledge"
+        if "intent" in lower or "意図" in content or "intents" in lower:
+            # Prefer the raw user utterance line when present
+            user_line = content
+            for line in content.splitlines():
+                if "ユーザー入力" in line or line.startswith("ユーザー"):
+                    user_line = line
+                    break
+            found: list[str] = []
+            fee_only = "手数料" in user_line and not any(
+                k in user_line for k in ("振り込", "残高", "カード停止", "カードを止め")
+            )
+            if not fee_only and any(
+                k in user_line for k in ("残高", "振り込", "振込", "送金", "カード停止", "操作", "transfer", "pay")
+            ):
+                if not ("手数料" in user_line and "振込" in user_line and "振り込" not in user_line):
+                    found.append("operations")
+            if any(k in user_line for k in ("提案", "おすすめ", "分析", "suggest", "recommend", "節約", "家計", "改善")):
+                found.append("personalization")
+            if any(
+                k in user_line
+                for k in ("手数料", "口座開設", "FAQ", "とは", "教えて", "knowledge", "流れ", "不正", "NISA")
+            ):
+                found.append("knowledge")
+            return ",".join(found) if found else "knowledge"
 
-        if "操作" in content or "operations" in lower:
+        if "ツール結果" in content or ("操作サポート" in content and "ツール" in content):
             return (
                 "ご依頼を解釈しました。利用可能な操作として「残高確認」「振込開始」「カード停止」を提案します。"
                 "続行する場合は対象口座と金額を教えてください。"
             )
 
-        if "パーソナライズ" in content or "personal" in lower or "提案" in content:
+        if "パーソナライズ提案" in content or "行動データ分析" in content:
             return (
                 "行動データを踏まえると、今月は飲食費の比率が高めです。"
                 "週次の家計レポート通知を有効化し、つみたて投資の自動入金を5,000円から検討することをおすすめします。"
             )
 
-        if "コンテキスト" in content or "context" in lower or "知識" in content:
-            # Prefer answering from retrieved context block if present
-            if "【検索結果】" in content or "Context:" in content:
+        if "Context:" in content or "【検索結果】" in content or "ナレッジに基づく" in content:
+            if "手数料" in content:
                 return (
-                    "ナレッジDBの情報に基づく回答です。関連する公式ガイドを参照しつつ、"
-                    "必要であればサポート窓口への案内も可能です。"
+                    "同行あての振込は無料、他行あては1件あたり145円（税込）です。"
+                    "プレミアムプランなら月5回まで他行振込が無料になります。"
                 )
-            return "関連するナレッジが見つかりました。詳細な手順や手数料についてご案内できます。"
+            if "残高" in content:
+                return "残高照会はアプリの口座画面、または「残高を教えて」と操作エージェントへ依頼できます。"
+            return (
+                "ナレッジDBの情報に基づく回答です。関連する公式ガイドを参照しつつ、"
+                "必要であればサポート窓口への案内も可能です。"
+            )
 
         return (
             "ご質問を受け付けました。口座・投資・手数料・セキュリティに関するサポートが可能です。"

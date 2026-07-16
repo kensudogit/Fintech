@@ -11,6 +11,7 @@ from app.api.schemas import (
     BehaviorEventRequest,
     ChatRequest,
     ChatResponse,
+    ConfirmActionRequest,
     HealthResponse,
     KnowledgeIngestRequest,
     SuggestResponse,
@@ -18,6 +19,7 @@ from app.api.schemas import (
 from app.config import get_settings
 from app.db.models import BehaviorEvent, ConversationMessage, ConversationSession, KnowledgeDocument, User
 from app.db.session import get_db
+from app.finance.tools import finance_toolkit
 from app.personalization.engine import personalization_engine
 from app.rag.pipeline import rag_service
 from app.seed import seed_sample_data
@@ -31,9 +33,30 @@ async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         app=settings.app_name,
+        product="LLM × マルチエージェント｜金融AIプロダクト",
         llm_provider=settings.llm_provider,
         rag_documents=len(getattr(rag_service, "_docs", []) or []),
     )
+
+
+@router.get("/accounts/{external_id}")
+async def get_accounts(external_id: str) -> dict:
+    return finance_toolkit.get_balances(external_id)
+
+
+@router.get("/actions/pending")
+async def pending_actions(external_id: str = Query(default="demo-user-001")) -> list[dict]:
+    return finance_toolkit.list_pending(external_id)
+
+
+@router.post("/actions/confirm")
+async def confirm_action(body: ConfirmActionRequest) -> dict:
+    return finance_toolkit.confirm(body.action_id)
+
+
+@router.post("/actions/cancel")
+async def cancel_action(body: ConfirmActionRequest) -> dict:
+    return finance_toolkit.cancel(body.action_id)
 
 
 @router.post("/chat", response_model=ChatResponse)

@@ -8,14 +8,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.nodes import (
-    classify_intent,
-    knowledge_agent,
-    operations_agent,
-    personalization_agent,
-    route_by_intent,
-    synthesize,
-)
+from app.agents.nodes import classify_intent, run_specialists, synthesize
 from app.agents.state import AgentState
 from app.db.models import AgentRun, ConversationMessage, ConversationSession
 from app.personalization.engine import personalization_engine
@@ -24,24 +17,12 @@ from app.personalization.engine import personalization_engine
 def build_graph():
     graph = StateGraph(AgentState)
     graph.add_node("classify_intent", classify_intent)
-    graph.add_node("operations_agent", operations_agent)
-    graph.add_node("personalization_agent", personalization_agent)
-    graph.add_node("knowledge_agent", knowledge_agent)
+    graph.add_node("run_specialists", run_specialists)
     graph.add_node("synthesize", synthesize)
 
     graph.set_entry_point("classify_intent")
-    graph.add_conditional_edges(
-        "classify_intent",
-        route_by_intent,
-        {
-            "operations_agent": "operations_agent",
-            "personalization_agent": "personalization_agent",
-            "knowledge_agent": "knowledge_agent",
-        },
-    )
-    graph.add_edge("operations_agent", "synthesize")
-    graph.add_edge("personalization_agent", "synthesize")
-    graph.add_edge("knowledge_agent", "synthesize")
+    graph.add_edge("classify_intent", "run_specialists")
+    graph.add_edge("run_specialists", "synthesize")
     graph.add_edge("synthesize", END)
     return graph.compile()
 
@@ -94,9 +75,12 @@ async def run_orchestration(
         "external_id": external_id,
         "query": query,
         "intent": "",
+        "intents": [],
         "profile_summary": profile.summary or "",
         "rag_context": "",
         "agent_outputs": {},
+        "pending_action": {},
+        "citations": [],
         "final_response": "",
         "routing_trace": [],
         "agents_used": [],
@@ -106,6 +90,8 @@ async def run_orchestration(
     result = graph.invoke(initial)
     answer = result.get("final_response") or "回答を生成できませんでした。"
     latency_ms = int((time.perf_counter() - started) * 1000)
+    intents = result.get("intents") or ([result.get("intent")] if result.get("intent") else [])
+    pending = result.get("pending_action") or {}
 
     session.add(
         ConversationMessage(
@@ -115,7 +101,10 @@ async def run_orchestration(
             agent_name=",".join(result.get("agents_used") or []),
             metadata_={
                 "intent": result.get("intent"),
+                "intents": intents,
                 "routing_trace": result.get("routing_trace"),
+                "pending_action": pending,
+                "citations": result.get("citations") or [],
             },
         )
     )
@@ -123,18 +112,17 @@ async def run_orchestration(
         AgentRun(
             session_id=session_id,
             user_id=user.id,
-            intent=result.get("intent"),
+            intent=",".join(intents) if intents else result.get("intent"),
             agents_used=result.get("agents_used") or [],
             routing_trace=result.get("routing_trace") or [],
             latency_ms=latency_ms,
         )
     )
-    # Treat dialogue as a behavior signal for personalization learning
     await personalization_engine.record_event(
         session,
         user,
         event_type="dialogue",
-        payload={"intent": result.get("intent"), "query": query[:200]},
+        payload={"intents": intents, "query": query[:200]},
     )
     await session.commit()
 
@@ -143,10 +131,15 @@ async def run_orchestration(
         "user_id": str(user.id),
         "external_id": external_id,
         "intent": result.get("intent"),
+        "intents": intents,
         "answer": answer,
         "agents_used": result.get("agents_used") or [],
         "routing_trace": result.get("routing_trace") or [],
         "rag_context": result.get("rag_context") or "",
+        "citations": result.get("citations") or [],
+        "pending_action": pending or None,
+        "agent_outputs": result.get("agent_outputs") or {},
         "latency_ms": latency_ms,
         "profile_summary": profile.summary,
+        "product": "LLM × マルチエージェント｜金融AIプロダクト",
     }

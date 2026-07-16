@@ -22,14 +22,17 @@ class RetrievedChunk:
 
 
 class KnowledgeRAG:
-    """Simple in-memory vector RAG over PostgreSQL knowledge documents."""
+    """Vector RAG over PostgreSQL knowledge documents with optional FAISS persistence."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
         self.embeddings = get_embeddings()
         self._docs: list[dict] = []
         self._vectors: list[list[float]] = []
+        self._faiss_index = None
         self._ready = False
+        self._store_dir = Path("./data/vectorstore")
+        self._store_dir.mkdir(parents=True, exist_ok=True)
 
     async def build_index(self, session: AsyncSession) -> int:
         result = await session.execute(select(KnowledgeDocument))
@@ -52,9 +55,30 @@ class KnowledgeRAG:
 
         texts = [f"{d['title']}\n{d['content']}" for d in rows_data]
         self._vectors = self.embeddings.embed_documents(texts) if texts else []
+        self._build_faiss()
         self._ready = True
         self._write_knowledge_files(rows_data)
         return len(rows_data)
+
+    def _build_faiss(self) -> None:
+        try:
+            import faiss
+            import numpy as np
+        except Exception:  # noqa: BLE001
+            self._faiss_index = None
+            return
+        if not self._vectors:
+            self._faiss_index = None
+            return
+        mat = np.array(self._vectors, dtype="float32")
+        index = faiss.IndexFlatIP(mat.shape[1])
+        faiss.normalize_L2(mat)
+        index.add(mat)
+        self._faiss_index = index
+        try:
+            faiss.write_index(index, str(self._store_dir / f"{self.settings.vector_collection}.faiss"))
+        except Exception:  # noqa: BLE001
+            pass
 
     def _seed_from_files(self) -> None:
         knowledge_dir = self.settings.knowledge_path
@@ -88,13 +112,42 @@ class KnowledgeRAG:
 
         k = top_k or self.settings.rag_top_k
         q = self.embeddings.embed_query(query)
+
+        if self._faiss_index is not None:
+            try:
+                import numpy as np
+
+                qv = np.array([q], dtype="float32")
+                import faiss
+
+                faiss.normalize_L2(qv)
+                scores, idxs = self._faiss_index.search(qv, min(k, len(self._docs)))
+                chunks: list[RetrievedChunk] = []
+                for score, idx in zip(scores[0], idxs[0], strict=False):
+                    if idx < 0 or idx >= len(self._docs):
+                        continue
+                    doc = self._docs[idx]
+                    chunks.append(
+                        RetrievedChunk(
+                            title=doc["title"],
+                            content=doc["content"],
+                            category=doc.get("category"),
+                            source=doc.get("source", ""),
+                            score=float(score),
+                        )
+                    )
+                if chunks:
+                    return chunks
+            except Exception:  # noqa: BLE001
+                pass
+
         scored: list[tuple[float, dict]] = []
         for doc, vec in zip(self._docs, self._vectors, strict=False):
             score = self._cosine(q, vec)
             scored.append((score, doc))
         scored.sort(key=lambda x: x[0], reverse=True)
 
-        chunks: list[RetrievedChunk] = []
+        chunks = []
         for score, doc in scored[:k]:
             chunks.append(
                 RetrievedChunk(

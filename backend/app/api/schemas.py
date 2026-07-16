@@ -18,12 +18,17 @@ class ChatResponse(BaseModel):
     user_id: str
     external_id: str
     intent: str | None = None
+    intents: list[str] = []
     answer: str
     agents_used: list[str] = []
     routing_trace: list[str] = []
     rag_context: str = ""
+    citations: list[str] = []
+    pending_action: dict[str, Any] | None = None
+    agent_outputs: dict[str, str] = Field(default_factory=dict)
     latency_ms: int = 0
     profile_summary: str | None = None
+    product: str | None = None
 
 
 class BehaviorEventRequest(BaseModel):
@@ -50,8 +55,15 @@ class KnowledgeIngestRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class ConfirmActionRequest(BaseModel):
+    action_id: str
+    external_id: str = "demo-user-001"
+
+
 class HealthResponse(BaseModel):
     status: str
     app: str
+    product: str = "LLM × マルチエージェント｜金融AIプロダクト"
     llm_provider: str
     rag_documents: int
+    agents: list[str] = ["operations", "personalization", "knowledge", "orchestrator"]
