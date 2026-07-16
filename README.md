@@ -68,8 +68,11 @@ API キーなしでも `LLM_PROVIDER=mock` で動作します。
 | GET | `/api/v1/tempest/packages` | パッケージ一覧 |
 | POST | `/api/v1/tempest/valuation/analyze` | 企業価値推定・高度予測 |
 | GET | `/api/v1/tempest/valuation/universe` | 対象銘柄ユニバース |
-| POST | `/api/v1/tempest/decision/transform` | 意思決定構造変革 |
+| POST | `/api/v1/tempest/decision/transform` | 意思決定構造変革（投入 Evidence 反映） |
 | GET | `/api/v1/tempest/decision/cases` | 意思決定ケース一覧 |
+| POST | `/api/v1/tempest/evidence` | 意思決定情報（構造化）の投入 |
+| POST | `/api/v1/tempest/evidence/text` | 自由文エビデンス投入 |
+| GET | `/api/v1/tempest/evidence` | 投入済み Evidence 一覧 |
 | POST | `/api/v1/tempest/loan/analyze` | 融資稟議解析 |
 | GET | `/api/v1/tempest/loan/applications` | サンプル稟議案件 |
 | POST | `/api/v1/tempest/matching/search` | ビジネスマッチング |

@@ -62,6 +62,44 @@ class ValuationAnalyzeRequest(BaseModel):
     horizon_months: int = Field(default=6, ge=1, le=12)
 
 
+class EvidenceIngestRequest(BaseModel):
+    """Structured evidence that improves decision quality (qual + quant)."""
+
+    kind: str = Field(default="qualitative", description="quantitative | qualitative | news | note")
+    title: str = Field(..., min_length=1, max_length=256)
+    case_id: str | None = Field(default=None, description="DEC-* or null for global")
+    source: str = "user_input"
+    submitted_by: str = "demo-user-001"
+    decision_relevance: str = Field(
+        default="",
+        description="この情報が意思決定にどう利するか",
+        max_length=1000,
+    )
+    weight: float = Field(default=1.0, ge=0.1, le=3.0)
+    # quantitative
+    value: float | None = None
+    unit: str | None = None
+    trend: str | None = None
+    # qualitative / news / note
+    narrative: str | None = Field(default=None, max_length=8000)
+    polarity: str | None = None
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    persist: bool = Field(default=True, description="PostgreSQL ナレッジにも保存")
+
+
+class EvidenceFreeTextRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=8000)
+    case_id: str | None = None
+    source: str = "user_input"
+    submitted_by: str = "demo-user-001"
+    decision_relevance: str = ""
+    persist: bool = True
+    run_transform: bool = Field(
+        default=False,
+        description="投入後に意思決定構造エンジンを再実行する",
+    )
+
+
 class BehaviorEventRequest(BaseModel):
     external_id: str = "demo-user-001"
     event_type: str
@@ -106,6 +144,7 @@ class HealthResponse(BaseModel):
         "sales_support",
         "decision_structure",
         "value_forecast",
+        "evidence_intake",
         "orchestrator",
     ]
     packages: list[str] = [

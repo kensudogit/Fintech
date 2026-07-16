@@ -14,6 +14,8 @@ from typing import Any
 from app.tempest.loan import loan_engine
 from app.tempest.matching import matching_engine
 
+# Late import avoided in methods to prevent cycles; evidence_store injected at call time.
+
 
 @dataclass
 class QuantSignal:
@@ -188,8 +190,22 @@ class DecisionStructureEngine:
             for c in self._cases.values()
         ]
 
-    def transform(self, query: str, case_id: str | None = None) -> dict[str, Any]:
-        case = self._resolve_case(query, case_id)
+    def transform(
+        self,
+        query: str,
+        case_id: str | None = None,
+        *,
+        include_ingested: bool = True,
+    ) -> dict[str, Any]:
+        from app.tempest.evidence import evidence_store
+
+        base_case = self._resolve_case(query, case_id)
+        ingested_rows: list[dict[str, Any]] = []
+        if include_ingested:
+            case, ingested_rows = evidence_store.apply_to_case(base_case)
+        else:
+            case = base_case
+
         quant_score = self._aggregate_quant(case.quant_signals)
         qual_score = self._aggregate_qual(case.qual_signals)
         integrated = round(quant_score["score"] * 0.52 + qual_score["score"] * 0.48, 1)
@@ -207,6 +223,30 @@ class DecisionStructureEngine:
         message = self._format_message(
             case, integrated, quant_score, qual_score, stance, traditional_vs_new, scenarios
         )
+        if ingested_rows:
+            message += (
+                f"\n\n▼ ユーザー投入エビデンス（{len(ingested_rows)}件）を反映済み\n"
+                + "\n".join(
+                    f"・[{r.get('kind')}] {r.get('title')} — {r.get('decision_relevance') or r.get('source')}"
+                    for r in ingested_rows[:5]
+                )
+            )
+
+        ledger = self._evidence_ledger(case)
+        for r in ingested_rows:
+            ledger.append(
+                {
+                    "evidence_id": r["evidence_id"],
+                    "kind": r["kind"],
+                    "name": r.get("title"),
+                    "payload": r.get("narrative")
+                    or f"{r.get('value')}{r.get('unit', '')}",
+                    "source": r.get("source"),
+                    "maps_to": "ユーザー投入 → 意思決定ノード",
+                    "decision_relevance": r.get("decision_relevance"),
+                    "ingested": True,
+                }
+            )
 
         return {
             "product": "TempestAI意思決定構造エンジン",
@@ -232,12 +272,14 @@ class DecisionStructureEngine:
             "scenarios": scenarios,
             "governance": governance,
             "challenge_board": challenges,
-            "evidence_ledger": self._evidence_ledger(case),
+            "evidence_ledger": ledger,
+            "ingested_evidence": ingested_rows,
             "enrichment": enrichment,
             "message": message,
             "next_actions": [
                 "決裁会議で本構造（基準木・シナリオ・反対仮説）を共通アジェンダにする",
                 "Evidence Ledger を議事録テンプレとして固定し、口頭補足を禁止する",
+                "追加の意思決定情報があれば Evidence 投入 API / 画面から継続投入する",
                 "四半期ごとに基準ウェイトを実績で再学習し、意思決定構造を更新する",
             ],
         }

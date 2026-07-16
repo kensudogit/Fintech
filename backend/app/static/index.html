@@ -381,6 +381,84 @@
       <div id="packageCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.85rem"></div>
     </section>
 
+    <section class="panel" style="margin-bottom:1.25rem">
+      <h2 style="margin:0 0 .35rem">意思決定情報の投入</h2>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.9rem">
+        定性・定量のエビデンスを Evidence Ledger に投入し、意思決定構造エンジンへ反映します。
+      </p>
+      <form id="evidenceForm" style="display:grid;gap:.75rem">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.65rem">
+          <label style="font-size:.85rem;color:var(--muted)">種別
+            <select id="evKind" style="display:block;width:100%;margin-top:.3rem;padding:.45rem .55rem;border-radius:8px;border:1px solid #cbd5e1">
+              <option value="qualitative">定性 (qualitative)</option>
+              <option value="quantitative">定量 (quantitative)</option>
+              <option value="news">ニュース (news)</option>
+              <option value="note">メモ (note)</option>
+            </select>
+          </label>
+          <label style="font-size:.85rem;color:var(--muted)">案件
+            <select id="evCase" style="display:block;width:100%;margin-top:.3rem;padding:.45rem .55rem;border-radius:8px;border:1px solid #cbd5e1">
+              <option value="">global（全案件）</option>
+              <option value="DEC-LOAN-0142">DEC-LOAN-0142 設備資金融資</option>
+              <option value="DEC-MATCH-A01">DEC-MATCH-A01 マッチング</option>
+              <option value="DEC-MACRO-01">DEC-MACRO-01 業況判断</option>
+            </select>
+          </label>
+          <label style="font-size:.85rem;color:var(--muted)">極性（定性）
+            <select id="evPolarity" style="display:block;width:100%;margin-top:.3rem;padding:.45rem .55rem;border-radius:8px;border:1px solid #cbd5e1">
+              <option value="mixed">mixed</option>
+              <option value="positive">positive</option>
+              <option value="negative">negative</option>
+            </select>
+          </label>
+        </div>
+        <label style="font-size:.85rem;color:var(--muted)">タイトル
+          <input id="evTitle" type="text" placeholder="例: 追加ヒアリング — 原材料交渉" style="display:block;width:100%;margin-top:.3rem;padding:.5rem .65rem;border-radius:8px;border:1px solid #cbd5e1" />
+        </label>
+        <label style="font-size:.85rem;color:var(--muted)">意思決定への寄与（なぜ利するか）
+          <input id="evRelevance" type="text" placeholder="例: 条件付承認のモニタリング指標を補強する" style="display:block;width:100%;margin-top:.3rem;padding:.5rem .65rem;border-radius:8px;border:1px solid #cbd5e1" />
+        </label>
+        <div id="evQuantFields" style="display:none;grid-template-columns:repeat(3,1fr);gap:.65rem">
+          <label style="font-size:.85rem;color:var(--muted)">値
+            <input id="evValue" type="number" step="any" style="display:block;width:100%;margin-top:.3rem;padding:.5rem .65rem;border-radius:8px;border:1px solid #cbd5e1" />
+          </label>
+          <label style="font-size:.85rem;color:var(--muted)">単位
+            <select id="evUnit" style="display:block;width:100%;margin-top:.3rem;padding:.45rem .55rem;border-radius:8px;border:1px solid #cbd5e1">
+              <option value="ratio">ratio</option>
+              <option value="x">x</option>
+              <option value="index">index</option>
+              <option value="%">%</option>
+            </select>
+          </label>
+          <label style="font-size:.85rem;color:var(--muted)">トレンド
+            <select id="evTrend" style="display:block;width:100%;margin-top:.3rem;padding:.45rem .55rem;border-radius:8px;border:1px solid #cbd5e1">
+              <option value="flat">flat</option>
+              <option value="up">up</option>
+              <option value="down">down</option>
+            </select>
+          </label>
+        </div>
+        <label style="font-size:.85rem;color:var(--muted)">本文 / 叙述（定性・ニュース）または自由文
+          <textarea id="evNarrative" rows="3" placeholder="例: 主要サプライヤとの価格改定交渉が難航し、四半期マージン圧迫リスクが高まっている。" style="display:block;width:100%;margin-top:.3rem;padding:.55rem .65rem;border-radius:8px;border:1px solid #cbd5e1;resize:vertical;font:inherit"></textarea>
+        </label>
+        <div style="display:flex;flex-wrap:wrap;gap:.55rem;align-items:center">
+          <button type="submit" class="primary" id="evSubmitBtn">情報を投入</button>
+          <button type="button" id="evSubmitAndRun">投入して意思決定を再実行</button>
+          <button type="button" id="evQuickText">自由文として投入</button>
+          <span id="evStatus" style="font-size:.85rem;color:var(--muted)"></span>
+        </div>
+      </form>
+      <div style="margin-top:1rem">
+        <div style="font-size:.8rem;font-weight:700;letter-spacing:.08em;color:#6366f1;margin-bottom:.4rem">INGESTED EVIDENCE</div>
+        <div class="scroll" style="max-height:180px">
+          <table>
+            <thead><tr><th>種別</th><th>タイトル / 寄与</th><th>案件</th></tr></thead>
+            <tbody id="evidenceBody"><tr><td colspan="3">まだ投入がありません</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <div class="grid">
       <section class="panel">
         <div class="toolbar">
@@ -606,15 +684,30 @@ FastAPI
 
       <article class="usage-guide-featured">
         <div class="usage-guide-featured-head">
-          <span class="usage-guide-featured-badge">PIPELINE</span>
-          <strong>推奨フロー（価値推定 → 決裁構造）</strong>
+          <span class="usage-guide-featured-badge">EVIDENCE</span>
+          <strong>意思決定に利する情報の投入</strong>
         </div>
-        <p>単発のスコアで終わらせず、推定結果を意思決定構造に接続します。</p>
+        <p>口頭補足を禁止し、定性・定量を Evidence Ledger に載せてから決裁します。</p>
         <ul class="usage-guide-items">
-          <li>① 「ノースウィンド製造の企業価値を推定して」で EV・予測を取得</li>
-          <li>② 「ノースウィンド製造の決裁構造を変えて」で基準木・シナリオ化</li>
-          <li>③ 必要なら「融資稟議を審査して」で実務判断へ接続</li>
-          <li>④ 公正価値ギャップを委員会の共通指標にし、定性悪化でモニタリング強化</li>
+          <li>画面フォーム「意思決定情報の投入」から構造化投入（種別・案件・寄与理由）</li>
+          <li>自由文投入: 自動で定量パース（例 <code>DSCR=0.95</code>）または定性分類</li>
+          <li>チャット:「意思決定情報を投入: …」→ 投入後に構造を再計算</li>
+          <li>API: <code>POST /api/v1/tempest/evidence</code> / <code>.../evidence/text</code></li>
+          <li>「投入して意思決定を再実行」で基準木・スタンスへ即反映</li>
+        </ul>
+      </article>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">PIPELINE</span>
+          <strong>推奨フロー（情報投入 → 決裁構造）</strong>
+        </div>
+        <p>単発のスコアで終わらせず、投入エビデンスを意思決定構造に接続します。</p>
+        <ul class="usage-guide-items">
+          <li>① 定性/定量の意思決定情報を投入（寄与理由を必ず書く）</li>
+          <li>② 「決裁構造を変えて」または「投入して再実行」で構造再計算</li>
+          <li>③ 「企業価値を推定して」で EV・予測を取得（任意）</li>
+          <li>④ 「融資稟議を審査して」等の実務パッケージへ接続</li>
         </ul>
       </article>
 
@@ -657,7 +750,17 @@ FastAPI
             <p>「サンプルデータを投入」または <code>POST /api/v1/seed?force=true</code> でデモデータを登録します（意思決定原則・審査観点ナレッジ含む）。</p>
           </li>
           <li>
-            <strong>3. 企業価値推定・高度予測</strong>
+            <strong>3. 意思決定情報の投入（Evidence）</strong>
+            <p>決裁に効く材料だけを構造化して投入します。<code>decision_relevance</code>（寄与理由）を必ず付けてください。</p>
+            <ul class="usage-guide-items">
+              <li>画面: 種別・案件・タイトル・寄与・本文 →「情報を投入」</li>
+              <li>定量例: 種別 quantitative / タイトル DSCR / 値 0.95 / 単位 x</li>
+              <li>チャット例:「意思決定情報を投入: 原材料交渉が難航しマージン圧迫」</li>
+              <li>反映確認: 右欄 TempestAI 結果 + Evidence Ledger の ingested 行</li>
+            </ul>
+          </li>
+          <li>
+            <strong>4. 企業価値推定・高度予測</strong>
             <p><code>value_forecast</code> が定量×定性×時系列×深層融合を実行します。</p>
             <ul class="usage-guide-items">
               <li>「ノースウィンド製造の企業価値を推定して」（NWD）</li>
@@ -668,8 +771,8 @@ FastAPI
             </ul>
           </li>
           <li>
-            <strong>4. 意思決定構造を変革する</strong>
-            <p>チャットで構造変革を依頼すると <code>decision_structure</code> が起動します。</p>
+            <strong>5. 意思決定構造を変革する</strong>
+            <p>チャットで構造変革を依頼すると <code>decision_structure</code> が起動し、投入済み Evidence を自動マージします。</p>
             <ul class="usage-guide-items">
               <li>汎用:「定性・定量を統合して意思決定構造を変革して」</li>
               <li>融資案件:「ノースウィンド製造の決裁構造を変えて」</li>
@@ -678,7 +781,7 @@ FastAPI
             </ul>
           </li>
           <li>
-            <strong>5. 出力の読み方</strong>
+            <strong>6. 出力の読み方</strong>
             <p>回答と右カラムで、次をセットで確認します（どれか一つだけでは不十分です）。</p>
             <ul class="usage-guide-items">
               <li>企業価値: EV・公正株価・市場価格・アップサイド・評価ラベル</li>
@@ -690,16 +793,17 @@ FastAPI
             </ul>
           </li>
           <li>
-            <strong>6. パッケージ連携</strong>
-            <p>価値推定 → 意思決定構造 → 稟議/マッチングの順で接続できます。</p>
+            <strong>7. パッケージ連携</strong>
+            <p>情報投入 → 価値推定 → 意思決定構造 → 稟議/マッチングの順で接続できます。</p>
             <ul class="usage-guide-items">
+              <li><code>evidence_intake</code> — 意思決定に利する情報の投入</li>
               <li><code>value_forecast</code> — 真の企業価値・高度予測</li>
-              <li><code>decision_structure</code> — 決裁構造変革</li>
+              <li><code>decision_structure</code> — 決裁構造変革（投入 Evidence 反映）</li>
               <li><code>loan_screening</code> / <code>b2b_matching</code> / <code>sales_support</code></li>
             </ul>
           </li>
           <li>
-            <strong>7. 自然言語操作（確認フロー）</strong>
+            <strong>8. 自然言語操作（確認フロー）</strong>
             <p>リテール操作デモです。実送金は行いません。</p>
             <ul class="usage-guide-items">
               <li>残高:「残高を教えて」</li>
@@ -708,8 +812,8 @@ FastAPI
             </ul>
           </li>
           <li>
-            <strong>8. ダッシュボード確認</strong>
-            <p>パッケージカード・ナレッジ・行動イベントを確認（<code>GET /api/v1/dashboard</code>）。</p>
+            <strong>9. ダッシュボード確認</strong>
+            <p>投入 Evidence・パッケージカード・ナレッジを確認（<code>GET /api/v1/dashboard</code>）。</p>
           </li>
         </ol>
       </div>
@@ -721,9 +825,10 @@ FastAPI
         </div>
         <p>チップをクリックするか、下の文をそのまま送信してください。</p>
         <ul class="usage-guide-items">
+          <li>意思決定情報を投入: DSCR=0.95。返済余力の再評価が必要</li>
+          <li>情報を投入: 原材料交渉が難航しマージン圧迫リスクが高まっている</li>
           <li>ノースウィンド製造の企業価値を推定して</li>
           <li>メディブリッジの株価を高度予測して</li>
-          <li>グリーンロジのセンチメントを踏まえて公正価値を出して</li>
           <li>定性・定量を統合して意思決定構造を変革して</li>
           <li>ノースウィンド製造の決裁構造を変えて</li>
           <li>ノースウィンド製造の融資稟議を審査して</li>
@@ -772,9 +877,9 @@ FastAPI
   <script>
     const API = "";
     const prompts = [
+      "意思決定情報を投入: DSCR=0.95。返済余力の再評価が必要",
+      "情報を投入: 原材料交渉が難航しマージン圧迫リスクが高まっている",
       "ノースウィンド製造の企業価値を推定して",
-      "メディブリッジの株価を高度予測して",
-      "グリーンロジのセンチメントを踏まえて公正価値を出して",
       "定性・定量を統合して意思決定構造を変革して",
       "ノースウィンド製造の決裁構造を変えて",
       "ノースウィンド製造の融資稟議を審査して",
@@ -912,6 +1017,7 @@ FastAPI
         renderKnowledge(data.knowledge || []);
         renderEvents(data.events || []);
         renderPackages(data.tempest?.packages || []);
+        renderEvidence(data.tempest?.evidence || []);
 
         if (!chatBootstrapped) {
           chatEl.innerHTML = "";
@@ -970,6 +1076,113 @@ FastAPI
       }
     });
 
+    function renderEvidence(rows) {
+      const body = document.getElementById("evidenceBody");
+      if (!body) return;
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="3">まだ投入がありません</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((r) => `
+        <tr>
+          <td>${r.kind || "—"}</td>
+          <td><strong>${r.title || "—"}</strong><br><span style="color:var(--muted);font-size:.8rem">${r.decision_relevance || r.narrative || ""}</span></td>
+          <td>${r.case_id || "global"}</td>
+        </tr>
+      `).join("");
+    }
+
+    function toggleEvidenceFields() {
+      const kind = document.getElementById("evKind")?.value;
+      const box = document.getElementById("evQuantFields");
+      if (!box) return;
+      box.style.display = kind === "quantitative" ? "grid" : "none";
+    }
+
+    async function submitEvidence({ freeText = false, runTransform = false } = {}) {
+      const status = document.getElementById("evStatus");
+      const kind = document.getElementById("evKind").value;
+      const caseId = document.getElementById("evCase").value || null;
+      const title = document.getElementById("evTitle").value.trim();
+      const relevance = document.getElementById("evRelevance").value.trim();
+      const narrative = document.getElementById("evNarrative").value.trim();
+      status.textContent = "投入中...";
+      try {
+        let res;
+        if (freeText) {
+          if (!narrative) throw new Error("本文を入力してください");
+          res = await fetch(`${API}/api/v1/tempest/evidence/text`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: narrative,
+              case_id: caseId,
+              decision_relevance: relevance,
+              submitted_by: externalIdEl.value.trim() || "demo-user-001",
+              persist: true,
+              run_transform: runTransform,
+            }),
+          });
+        } else {
+          const payload = {
+            kind,
+            title: title || (narrative ? narrative.slice(0, 40) : "意思決定エビデンス"),
+            case_id: caseId,
+            decision_relevance: relevance,
+            submitted_by: externalIdEl.value.trim() || "demo-user-001",
+            persist: true,
+            polarity: document.getElementById("evPolarity").value,
+            narrative: narrative || null,
+          };
+          if (kind === "quantitative") {
+            const value = document.getElementById("evValue").value;
+            if (value === "") throw new Error("定量値を入力してください");
+            payload.value = Number(value);
+            payload.unit = document.getElementById("evUnit").value;
+            payload.trend = document.getElementById("evTrend").value;
+            payload.narrative = null;
+          } else if (!narrative) {
+            throw new Error("叙述本文を入力してください");
+          }
+          res = await fetch(`${API}/api/v1/tempest/evidence`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        status.textContent = `投入完了: ${data.evidence?.evidence_id || "ok"}`;
+        if (runTransform && !data.transform) {
+          const tRes = await fetch(`${API}/api/v1/tempest/decision/transform`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: "投入エビデンスを反映して意思決定構造を再計算して",
+              case_id: caseId,
+            }),
+          });
+          if (tRes.ok) {
+            const tr = await tRes.json();
+            showPackage({ type: "decision_structure", ...tr });
+            appendMessage("assistant", tr.message || "意思決定構造を更新しました", "decision_structure");
+          }
+        } else if (data.transform) {
+          showPackage({ type: "decision_structure", ...data.transform });
+          appendMessage("assistant", data.transform.message || "意思決定構造を更新しました", "decision_structure");
+        } else {
+          showPackage({
+            type: "evidence_intake",
+            product: "TempestAI Evidence Intake",
+            evidence: data.evidence,
+          });
+        }
+        await loadDashboard();
+      } catch (err) {
+        status.textContent = err.message || "投入に失敗しました";
+      }
+    }
+
     function renderPackages(packages) {
       const root = document.getElementById("packageCards");
       if (!root) return;
@@ -997,7 +1210,16 @@ FastAPI
         box.style.display = "none";
         return;
       }
-      if (payload.type === "value_forecast") {
+      if (payload.type === "evidence_intake") {
+        const ev = payload.evidence || {};
+        summary.textContent = [
+          payload.product || "TempestAI Evidence Intake",
+          `ID: ${ev.evidence_id || "—"}`,
+          `種別: ${ev.kind || "—"} / 案件: ${ev.case_id || "global"}`,
+          `タイトル: ${ev.title || "—"}`,
+          `寄与: ${ev.decision_relevance || "—"}`,
+        ].join("\n");
+      } else if (payload.type === "value_forecast") {
         const v = payload.valuation || {};
         const d = payload.decision || {};
         const q = payload.qualitative || {};
@@ -1240,6 +1462,19 @@ FastAPI
 
       restoreState();
     })();
+
+    document.getElementById("evKind")?.addEventListener("change", toggleEvidenceFields);
+    document.getElementById("evidenceForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await submitEvidence({ freeText: false, runTransform: false });
+    });
+    document.getElementById("evSubmitAndRun")?.addEventListener("click", async () => {
+      await submitEvidence({ freeText: false, runTransform: true });
+    });
+    document.getElementById("evQuickText")?.addEventListener("click", async () => {
+      await submitEvidence({ freeText: true, runTransform: false });
+    });
+    toggleEvidenceFields();
 
     refreshHealth();
     loadDashboard();

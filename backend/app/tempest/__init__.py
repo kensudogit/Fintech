@@ -2,6 +2,7 @@
 
 from app.tempest.catalog import PACKAGE_CATALOG, list_packages
 from app.tempest.decision import decision_engine
+from app.tempest.evidence import evidence_store
 from app.tempest.loan import loan_engine
 from app.tempest.matching import matching_engine
 from app.tempest.sales import sales_engine
@@ -11,6 +12,7 @@ __all__ = [
     "PACKAGE_CATALOG",
     "list_packages",
     "decision_engine",
+    "evidence_store",
     "loan_engine",
     "matching_engine",
     "sales_engine",

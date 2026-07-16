@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -9,6 +10,7 @@ from app.finance.tools import finance_toolkit
 from app.llm.factory import get_chat_model
 from app.rag.pipeline import rag_service
 from app.tempest.decision import decision_engine
+from app.tempest.evidence import evidence_store
 from app.tempest.loan import loan_engine
 from app.tempest.matching import matching_engine
 from app.tempest.sales import sales_engine
@@ -23,6 +25,7 @@ VALID_INTENTS = (
     "sales_support",
     "decision_structure",
     "value_forecast",
+    "evidence_intake",
 )
 
 
@@ -42,6 +45,21 @@ def _detect_intents(query: str) -> list[str]:
     q = query
     found: list[str] = []
 
+    if any(
+        k in q
+        for k in (
+            "情報を投入",
+            "情報投入",
+            "エビデンス追加",
+            "エビデンスを追加",
+            "意思決定情報",
+            "証拠を追加",
+            "材料を追加",
+            "Evidence",
+            "evidence",
+        )
+    ):
+        found.append("evidence_intake")
     if any(
         k in q
         for k in (
@@ -105,7 +123,7 @@ def classify_intent(state: AgentState) -> dict[str, Any]:
             content=(
                 "あなたは金融機関向けAIの意図分類器です。"
                 "該当する意図をカンマ区切りで返してください。"
-                "候補: operations, personalization, knowledge, loan_screening, b2b_matching, sales_support, decision_structure, value_forecast"
+                "候補: operations, personalization, knowledge, loan_screening, b2b_matching, sales_support, decision_structure, value_forecast, evidence_intake"
                 "複合質問なら複数返してください。余計な文字は不要です。"
             )
         ),
@@ -176,20 +194,33 @@ def run_specialists(state: AgentState) -> dict[str, Any]:
 
     package_payload: dict[str, Any] = dict(state.get("package_payload") or {})
 
+    if "evidence_intake" in intents:
+        ev = _run_evidence_intake(state)
+        outputs["evidence_intake"] = ev["text"]
+        used.append("evidence_intake")
+        trace.append("ran:evidence_intake")
+        package_payload = {"type": "evidence_intake", **ev["payload"]}
+        # Auto-refresh decision structure after intake when not already requested
+        if "decision_structure" not in intents:
+            intents = list(intents) + ["decision_structure"]
+
     if "value_forecast" in intents:
         val = _run_value_forecast(state)
         outputs["value_forecast"] = val["text"]
         used.append("value_forecast")
         trace.append("ran:value_forecast")
-        package_payload = {"type": "value_forecast", **val["payload"]}
+        if package_payload.get("type") != "evidence_intake":
+            package_payload = {"type": "value_forecast", **val["payload"]}
 
     if "decision_structure" in intents:
         dec = _run_decision_structure(state)
         outputs["decision_structure"] = dec["text"]
         used.append("decision_structure")
         trace.append("ran:decision_structure")
-        if package_payload.get("type") != "value_forecast":
+        if package_payload.get("type") not in ("evidence_intake", "value_forecast"):
             package_payload = {"type": "decision_structure", **dec["payload"]}
+        elif package_payload.get("type") == "evidence_intake":
+            package_payload["transform"] = dec["payload"]
 
     if "loan_screening" in intents:
         loan = _run_loan_screening(state)
@@ -303,6 +334,54 @@ def _run_knowledge(state: AgentState) -> dict[str, Any]:
     return {"text": text, "rag_context": context, "citations": citations}
 
 
+def _run_evidence_intake(state: AgentState) -> dict[str, Any]:
+    q = state["query"]
+    # Strip intake cue prefixes for cleaner storage
+    body = q
+    for cue in (
+        "意思決定情報を投入:",
+        "意思決定情報を投入：",
+        "情報を投入:",
+        "情報を投入：",
+        "エビデンス追加:",
+        "エビデンス追加：",
+        "証拠を追加:",
+        "証拠を追加：",
+    ):
+        if cue in body:
+            body = body.split(cue, 1)[1].strip()
+            break
+    case_id = None
+    m = re.search(r"(DEC-[A-Z]+-\d+)", q, re.I)
+    if m:
+        case_id = m.group(1).upper()
+    elif any(k in q for k in ("ノース", "設備", "融資")):
+        case_id = "DEC-LOAN-0142"
+    elif any(k in q for k in ("マッチ", "アトラス")):
+        case_id = "DEC-MATCH-A01"
+    elif any(k in q for k in ("業況", "金利", "スタンス")):
+        case_id = "DEC-MACRO-01"
+
+    item = evidence_store.ingest_free_text(
+        text=body or q,
+        case_id=case_id,
+        source="chat",
+        submitted_by=state.get("external_id") or "demo-user-001",
+        decision_relevance="チャット経由で投入された意思決定材料",
+    )
+    text = (
+        f"【意思決定情報を投入しました】\n"
+        f"ID: {item['evidence_id']}\n"
+        f"種別: {item['kind']} / 案件: {item.get('case_id') or 'global'}\n"
+        f"タイトル: {item['title']}\n"
+        f"続けて意思決定構造を再計算します。"
+    )
+    return {
+        "text": text,
+        "payload": {"product": "TempestAI Evidence Intake", "evidence": item, "case_id": case_id},
+    }
+
+
 def _run_value_forecast(state: AgentState) -> dict[str, Any]:
     result = valuation_agent.analyze(state["query"])
     chunks = rag_service.retrieve(f"企業価値 予測 センチメント {state['query']}")
@@ -349,6 +428,7 @@ def synthesize(state: AgentState) -> dict[str, Any]:
         return {"final_response": "回答を生成できませんでした。", "messages": [AIMessage(content="")]}
 
     labels = {
+        "evidence_intake": "意思決定情報の投入",
         "value_forecast": "TempestAI企業価値・高度予測",
         "decision_structure": "TempestAI意思決定構造",
         "loan_screening": "TempestAI融資稟議",
@@ -359,6 +439,7 @@ def synthesize(state: AgentState) -> dict[str, Any]:
         "knowledge": "ナレッジ / FAQ",
     }
     order = (
+        "evidence_intake",
         "value_forecast",
         "decision_structure",
         "loan_screening",

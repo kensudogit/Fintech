@@ -74,6 +74,18 @@ class MockChatModel:
             if any(
                 k in user_line
                 for k in (
+                    "情報を投入",
+                    "情報投入",
+                    "エビデンス追加",
+                    "意思決定情報",
+                    "証拠を追加",
+                    "材料を追加",
+                )
+            ):
+                found.append("evidence_intake")
+            if any(
+                k in user_line
+                for k in (
                     "企業価値",
                     "真の企業価値",
                     "公正価値",

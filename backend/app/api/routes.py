@@ -12,9 +12,11 @@ from app.api.schemas import (
     ChatRequest,
     ChatResponse,
     ConfirmActionRequest,
+    DecisionTransformRequest,
+    EvidenceFreeTextRequest,
+    EvidenceIngestRequest,
     HealthResponse,
     KnowledgeIngestRequest,
-    DecisionTransformRequest,
     LoanAnalyzeRequest,
     MatchingSearchRequest,
     SuggestResponse,
@@ -29,12 +31,45 @@ from app.rag.pipeline import rag_service
 from app.seed import seed_sample_data
 from app.tempest import (
     decision_engine,
+    evidence_store,
     list_packages,
     loan_engine,
     matching_engine,
     sales_engine,
     valuation_agent,
 )
+
+
+async def _persist_evidence(db: AsyncSession, item: dict) -> str | None:
+    """Mirror evidence into knowledge_documents for RAG + durability."""
+    body = item.get("narrative") or (
+        f"{item.get('title')}: {item.get('value')}{item.get('unit', '')} trend={item.get('trend')}"
+    )
+    relevance = item.get("decision_relevance") or ""
+    content = (
+        f"【意思決定エビデンス】{item.get('title')}\n"
+        f"種別: {item.get('kind')} / 案件: {item.get('case_id') or 'global'}\n"
+        f"意思決定への寄与: {relevance}\n"
+        f"{body}"
+    )
+    doc = KnowledgeDocument(
+        source=str(item.get("source") or "evidence_intake"),
+        title=f"[Evidence] {item.get('title')}",
+        content=content,
+        category="decision_evidence",
+        metadata_={
+            "evidence_id": item.get("evidence_id"),
+            "kind": item.get("kind"),
+            "case_id": item.get("case_id"),
+            "decision_relevance": relevance,
+            "submitted_by": item.get("submitted_by"),
+        },
+    )
+    db.add(doc)
+    await db.commit()
+    await db.refresh(doc)
+    await rag_service.build_index(db)
+    return str(doc.id)
 
 router = APIRouter()
 
@@ -78,6 +113,57 @@ async def tempest_decision_cases() -> list[dict]:
 @router.post("/tempest/decision/transform")
 async def tempest_decision_transform(body: DecisionTransformRequest) -> dict:
     return decision_engine.transform(body.query, case_id=body.case_id)
+
+
+@router.get("/tempest/evidence")
+async def list_evidence(
+    case_id: str | None = Query(default=None),
+    kind: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> list[dict]:
+    return evidence_store.list(case_id=case_id, kind=kind, limit=limit)
+
+
+@router.post("/tempest/evidence")
+async def ingest_evidence(body: EvidenceIngestRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    try:
+        item = evidence_store.add(body.model_dump(exclude={"persist"}))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    doc_id = None
+    if body.persist:
+        doc_id = await _persist_evidence(db, item)
+    return {"ok": True, "evidence": item, "knowledge_id": doc_id}
+
+
+@router.post("/tempest/evidence/text")
+async def ingest_evidence_text(body: EvidenceFreeTextRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    item = evidence_store.ingest_free_text(
+        text=body.text,
+        case_id=body.case_id,
+        source=body.source,
+        submitted_by=body.submitted_by,
+        decision_relevance=body.decision_relevance,
+    )
+    doc_id = None
+    if body.persist:
+        doc_id = await _persist_evidence(db, item)
+    result: dict = {"ok": True, "evidence": item, "knowledge_id": doc_id}
+    if body.run_transform:
+        result["transform"] = decision_engine.transform(
+            body.text,
+            case_id=body.case_id,
+            include_ingested=True,
+        )
+    return result
+
+
+@router.delete("/tempest/evidence/{evidence_id}")
+async def delete_evidence(evidence_id: str) -> dict:
+    ok = evidence_store.delete(evidence_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="evidence not found")
+    return {"ok": True, "evidence_id": evidence_id}
 
 
 @router.get("/tempest/loan/applications")
@@ -317,6 +403,8 @@ async def dashboard(
             "decision_cases": decision_engine.list_cases(),
             "loan_applications": loan_engine.list_applications(),
             "companies": matching_engine.list_companies(),
+            "evidence": evidence_store.list(limit=30),
+            "evidence_count": len(evidence_store.list(limit=200)),
         },
     }
 

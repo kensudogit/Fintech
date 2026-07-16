@@ -26,12 +26,16 @@ PACKAGE_CATALOG: list[dict[str, Any]] = [
         "tagline": "金融・経済の定性・定量データを統合し、業務効率化ではなく意思決定構造そのものを変革",
         "capabilities": [
             "定性・定量の同一 Evidence Ledger 化",
+            "ユーザー投入エビデンスの即時反映",
             "基準木・シナリオ3分岐・反対仮説ボード",
             "決裁権限と役割責任の構造化",
-            "効率化ではなく再現可能・反証可能な意思決定へ転換",
         ],
-        "intents": ["decision_structure"],
-        "apis": ["/api/v1/tempest/decision/transform", "/api/v1/tempest/decision/cases"],
+        "intents": ["decision_structure", "evidence_intake"],
+        "apis": [
+            "/api/v1/tempest/decision/transform",
+            "/api/v1/tempest/evidence",
+            "/api/v1/tempest/evidence/text",
+        ],
     },
     {
         "id": "tempest-loan",
