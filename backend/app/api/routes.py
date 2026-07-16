@@ -14,7 +14,11 @@ from app.api.schemas import (
     ConfirmActionRequest,
     HealthResponse,
     KnowledgeIngestRequest,
+    DecisionTransformRequest,
+    LoanAnalyzeRequest,
+    MatchingSearchRequest,
     SuggestResponse,
+    ValuationAnalyzeRequest,
 )
 from app.config import get_settings
 from app.db.models import BehaviorEvent, ConversationMessage, ConversationSession, KnowledgeDocument, User
@@ -23,6 +27,14 @@ from app.finance.tools import finance_toolkit
 from app.personalization.engine import personalization_engine
 from app.rag.pipeline import rag_service
 from app.seed import seed_sample_data
+from app.tempest import (
+    decision_engine,
+    list_packages,
+    loan_engine,
+    matching_engine,
+    sales_engine,
+    valuation_agent,
+)
 
 router = APIRouter()
 
@@ -33,10 +45,68 @@ async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         app=settings.app_name,
-        product="LLM × マルチエージェント｜金融AIプロダクト",
+        product="TempestAI｜金融AIパッケージ",
         llm_provider=settings.llm_provider,
         rag_documents=len(getattr(rag_service, "_docs", []) or []),
     )
+
+
+@router.get("/tempest/packages")
+async def tempest_packages() -> list[dict]:
+    return list_packages()
+
+
+@router.get("/tempest/valuation/universe")
+async def tempest_valuation_universe() -> list[dict]:
+    return valuation_agent.list_universe()
+
+
+@router.post("/tempest/valuation/analyze")
+async def tempest_valuation_analyze(body: ValuationAnalyzeRequest) -> dict:
+    return valuation_agent.analyze(
+        body.query,
+        ticker=body.ticker,
+        horizon_months=body.horizon_months,
+    )
+
+
+@router.get("/tempest/decision/cases")
+async def tempest_decision_cases() -> list[dict]:
+    return decision_engine.list_cases()
+
+
+@router.post("/tempest/decision/transform")
+async def tempest_decision_transform(body: DecisionTransformRequest) -> dict:
+    return decision_engine.transform(body.query, case_id=body.case_id)
+
+
+@router.get("/tempest/loan/applications")
+async def tempest_loan_applications() -> list[dict]:
+    return loan_engine.list_applications()
+
+
+@router.post("/tempest/loan/analyze")
+async def tempest_loan_analyze(body: LoanAnalyzeRequest) -> dict:
+    return loan_engine.analyze(body.query, application_id=body.application_id)
+
+
+@router.get("/tempest/matching/companies")
+async def tempest_matching_companies() -> list[dict]:
+    return matching_engine.list_companies()
+
+
+@router.post("/tempest/matching/search")
+async def tempest_matching_search(body: MatchingSearchRequest) -> dict:
+    return matching_engine.search(
+        body.query,
+        source_company_id=body.source_company_id,
+        top_k=body.top_k,
+    )
+
+
+@router.post("/tempest/sales/support")
+async def tempest_sales_support(body: MatchingSearchRequest) -> dict:
+    return sales_engine.support(body.query)
 
 
 @router.get("/accounts/{external_id}")
@@ -240,6 +310,13 @@ async def dashboard(
                 )
                 or 0
             ),
+        },
+        "tempest": {
+            "packages": list_packages(),
+            "valuation_universe": valuation_agent.list_universe(),
+            "decision_cases": decision_engine.list_cases(),
+            "loan_applications": loan_engine.list_applications(),
+            "companies": matching_engine.list_companies(),
         },
     }
 

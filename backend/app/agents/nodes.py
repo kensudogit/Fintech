@@ -8,8 +8,22 @@ from app.agents.state import AgentState
 from app.finance.tools import finance_toolkit
 from app.llm.factory import get_chat_model
 from app.rag.pipeline import rag_service
+from app.tempest.decision import decision_engine
+from app.tempest.loan import loan_engine
+from app.tempest.matching import matching_engine
+from app.tempest.sales import sales_engine
+from app.tempest.valuation import valuation_agent
 
-VALID_INTENTS = ("operations", "personalization", "knowledge")
+VALID_INTENTS = (
+    "operations",
+    "personalization",
+    "knowledge",
+    "loan_screening",
+    "b2b_matching",
+    "sales_support",
+    "decision_structure",
+    "value_forecast",
+)
 
 
 def _wants_operations(q: str) -> bool:
@@ -28,11 +42,55 @@ def _detect_intents(query: str) -> list[str]:
     q = query
     found: list[str] = []
 
+    if any(
+        k in q
+        for k in (
+            "企業価値",
+            "真の企業価値",
+            "公正価値",
+            "バリュエーション",
+            "株価予測",
+            "時系列予測",
+            "高度予測",
+            "センチメント",
+            "割安",
+            "割高",
+            "DCF",
+            "EV推定",
+        )
+    ):
+        found.append("value_forecast")
+    if any(
+        k in q
+        for k in (
+            "意思決定構造",
+            "意思決定を変革",
+            "決裁構造",
+            "定性・定量",
+            "定性定量",
+            "エビデンス台帳",
+            "シナリオ分岐",
+            "反対仮説",
+            "与信スタンス",
+            "業況判断",
+        )
+    ):
+        found.append("decision_structure")
+    if any(k in q for k in ("稟議", "融資審査", "信用審査", "与信", "融資判断", "融資案件", "LN-")):
+        found.append("loan_screening")
+        if "decision_structure" not in found and any(k in q for k in ("構造", "変革", "統合", "判断枠")):
+            found.append("decision_structure")
+    if any(k in q for k in ("マッチング", "ビジネスマッチ", "取引先紹介", "企業紹介", "提携先", "マッチ候補")):
+        found.append("b2b_matching")
+    if any(k in q for k in ("営業支援", "トークスクリプト", "訪問提案", "法人営業", "営業トーク")):
+        found.append("sales_support")
     if _wants_operations(q):
         found.append("operations")
-    if any(k in q for k in ("提案", "おすすめ", "分析", "節約", "パーソナライズ", "家計", "改善")):
+    if any(k in q for k in ("おすすめ", "節約", "パーソナライズ", "家計", "改善提案")):
         found.append("personalization")
-    if any(k in q for k in ("手数料", "口座開設", "とは", "教えて", "流れ", "不正利用", "FAQ", "知識", "NISA")):
+    elif "提案" in q and "loan_screening" not in found and "b2b_matching" not in found and "sales_support" not in found:
+        found.append("personalization")
+    if any(k in q for k in ("手数料", "口座開設", "とは", "教えて", "流れ", "不正利用", "FAQ", "知識", "NISA", "審査基準")):
         found.append("knowledge")
 
     if not found:
@@ -45,9 +103,9 @@ def classify_intent(state: AgentState) -> dict[str, Any]:
     prompt = [
         SystemMessage(
             content=(
-                "あなたは金融アプリの意図分類器です。"
+                "あなたは金融機関向けAIの意図分類器です。"
                 "該当する意図をカンマ区切りで返してください。"
-                "候補: operations, personalization, knowledge"
+                "候補: operations, personalization, knowledge, loan_screening, b2b_matching, sales_support, decision_structure, value_forecast"
                 "複合質問なら複数返してください。余計な文字は不要です。"
             )
         ),
@@ -116,12 +174,53 @@ def run_specialists(state: AgentState) -> dict[str, Any]:
         used.append("knowledge")
         trace.append("ran:knowledge")
 
+    package_payload: dict[str, Any] = dict(state.get("package_payload") or {})
+
+    if "value_forecast" in intents:
+        val = _run_value_forecast(state)
+        outputs["value_forecast"] = val["text"]
+        used.append("value_forecast")
+        trace.append("ran:value_forecast")
+        package_payload = {"type": "value_forecast", **val["payload"]}
+
+    if "decision_structure" in intents:
+        dec = _run_decision_structure(state)
+        outputs["decision_structure"] = dec["text"]
+        used.append("decision_structure")
+        trace.append("ran:decision_structure")
+        if package_payload.get("type") != "value_forecast":
+            package_payload = {"type": "decision_structure", **dec["payload"]}
+
+    if "loan_screening" in intents:
+        loan = _run_loan_screening(state)
+        outputs["loan_screening"] = loan["text"]
+        used.append("loan_screening")
+        trace.append("ran:loan_screening")
+        if package_payload.get("type") not in ("value_forecast", "decision_structure"):
+            package_payload = {"type": "loan_screening", **loan["payload"]}
+
+    if "b2b_matching" in intents:
+        match = _run_b2b_matching(state)
+        outputs["b2b_matching"] = match["text"]
+        used.append("b2b_matching")
+        trace.append("ran:b2b_matching")
+        package_payload = {"type": "b2b_matching", **match["payload"]}
+
+    if "sales_support" in intents:
+        sales = _run_sales_support(state)
+        outputs["sales_support"] = sales["text"]
+        used.append("sales_support")
+        trace.append("ran:sales_support")
+        if not package_payload:
+            package_payload = {"type": "sales_support", **sales["payload"]}
+
     return {
         "agent_outputs": outputs,
         "agents_used": used,
         "routing_trace": trace,
         "rag_context": rag_context,
         "pending_action": pending_action,
+        "package_payload": package_payload,
         "citations": citations,
         "final_response": next(iter(outputs.values()), ""),
     }
@@ -204,26 +303,77 @@ def _run_knowledge(state: AgentState) -> dict[str, Any]:
     return {"text": text, "rag_context": context, "citations": citations}
 
 
+def _run_value_forecast(state: AgentState) -> dict[str, Any]:
+    result = valuation_agent.analyze(state["query"])
+    chunks = rag_service.retrieve(f"企業価値 予測 センチメント {state['query']}")
+    policy = rag_service.format_context(chunks[:2]) if chunks else ""
+    text = result["message"]
+    if policy:
+        text = f"{text}\n\n（参考ナレッジ）\n{policy[:400]}"
+    return {"text": text, "payload": result}
+
+
+def _run_decision_structure(state: AgentState) -> dict[str, Any]:
+    result = decision_engine.transform(state["query"])
+    chunks = rag_service.retrieve(f"意思決定 定性 定量 {state['query']}")
+    policy = rag_service.format_context(chunks[:2]) if chunks else ""
+    text = result["message"]
+    if policy:
+        text = f"{text}\n\n（参考ナレッジ）\n{policy[:400]}"
+    return {"text": text, "payload": result}
+
+
+def _run_loan_screening(state: AgentState) -> dict[str, Any]:
+    result = loan_engine.analyze(state["query"])
+    chunks = rag_service.retrieve(f"融資稟議 審査基準 {state['query']}")
+    policy = rag_service.format_context(chunks[:2]) if chunks else ""
+    text = result["message"]
+    if policy:
+        text = f"{text}\n\n（参考ポリシー）\n{policy[:500]}"
+    return {"text": text, "payload": result}
+
+
+def _run_b2b_matching(state: AgentState) -> dict[str, Any]:
+    result = matching_engine.search(state["query"])
+    return {"text": result["message"], "payload": result}
+
+
+def _run_sales_support(state: AgentState) -> dict[str, Any]:
+    result = sales_engine.support(state["query"])
+    return {"text": result["message"], "payload": result}
+
+
 def synthesize(state: AgentState) -> dict[str, Any]:
     outputs = state.get("agent_outputs") or {}
     if not outputs:
         return {"final_response": "回答を生成できませんでした。", "messages": [AIMessage(content="")]}
 
     labels = {
+        "value_forecast": "TempestAI企業価値・高度予測",
+        "decision_structure": "TempestAI意思決定構造",
+        "loan_screening": "TempestAI融資稟議",
+        "b2b_matching": "TempestAIビジネスマッチング",
+        "sales_support": "TempestAI営業支援",
         "operations": "操作サポート",
         "personalization": "パーソナライズ提案",
-        "knowledge": "ナレッジ回答",
+        "knowledge": "ナレッジ / FAQ",
     }
+    order = (
+        "value_forecast",
+        "decision_structure",
+        "loan_screening",
+        "b2b_matching",
+        "sales_support",
+        "operations",
+        "personalization",
+        "knowledge",
+    )
 
     if len(outputs) == 1:
         text = next(iter(outputs.values()))
     else:
-        # Structured merge keeps tool facts (残高・確認ID) intact under mock LLM
-        parts = [
-            f"### {labels.get(name, name)}\n{outputs[name]}"
-            for name in ("operations", "personalization", "knowledge")
-            if name in outputs
-        ]
+        # Structured merge keeps tool facts intact under mock LLM
+        parts = [f"### {labels.get(name, name)}\n{outputs[name]}" for name in order if name in outputs]
         text = "\n\n".join(parts)
 
     pending = state.get("pending_action") or {}

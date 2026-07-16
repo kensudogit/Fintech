@@ -71,6 +71,45 @@ class MockChatModel:
                     user_line = line
                     break
             found: list[str] = []
+            if any(
+                k in user_line
+                for k in (
+                    "企業価値",
+                    "真の企業価値",
+                    "公正価値",
+                    "バリュエーション",
+                    "株価予測",
+                    "時系列予測",
+                    "高度予測",
+                    "センチメント",
+                    "割安",
+                    "割高",
+                    "DCF",
+                    "EV推定",
+                )
+            ):
+                found.append("value_forecast")
+            if any(
+                k in user_line
+                for k in (
+                    "意思決定構造",
+                    "意思決定を変革",
+                    "決裁構造",
+                    "定性・定量",
+                    "定性定量",
+                    "シナリオ分岐",
+                    "反対仮説",
+                    "与信スタンス",
+                    "業況判断",
+                )
+            ):
+                found.append("decision_structure")
+            if any(k in user_line for k in ("稟議", "融資審査", "信用審査", "与信", "融資判断", "LN-")):
+                found.append("loan_screening")
+            if any(k in user_line for k in ("マッチング", "ビジネスマッチ", "取引先紹介", "企業紹介", "マッチ候補")):
+                found.append("b2b_matching")
+            if any(k in user_line for k in ("営業支援", "トークスクリプト", "訪問提案", "法人営業", "営業トーク")):
+                found.append("sales_support")
             fee_only = "手数料" in user_line and not any(
                 k in user_line for k in ("振り込", "残高", "カード停止", "カードを止め")
             )
@@ -79,11 +118,11 @@ class MockChatModel:
             ):
                 if not ("手数料" in user_line and "振込" in user_line and "振り込" not in user_line):
                     found.append("operations")
-            if any(k in user_line for k in ("提案", "おすすめ", "分析", "suggest", "recommend", "節約", "家計", "改善")):
+            if any(k in user_line for k in ("おすすめ", "節約", "パーソナライズ", "家計", "改善提案")):
                 found.append("personalization")
             if any(
                 k in user_line
-                for k in ("手数料", "口座開設", "FAQ", "とは", "教えて", "knowledge", "流れ", "不正", "NISA")
+                for k in ("手数料", "口座開設", "FAQ", "とは", "教えて", "knowledge", "流れ", "不正", "NISA", "審査基準")
             ):
                 found.append("knowledge")
             return ",".join(found) if found else "knowledge"

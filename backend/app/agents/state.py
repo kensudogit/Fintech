@@ -16,6 +16,7 @@ class AgentState(TypedDict):
     rag_context: str
     agent_outputs: dict[str, str]
     pending_action: dict[str, Any]
+    package_payload: dict[str, Any]
     citations: list[str]
     final_response: str
     routing_trace: list[str]

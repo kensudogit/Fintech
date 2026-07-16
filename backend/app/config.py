@@ -10,7 +10,7 @@ from app.db_url import to_asyncpg_url, to_sync_url
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "LLM × マルチエージェント｜金融AIプロダクト"
+    app_name: str = "TempestAI｜金融AIパッケージ"
     app_env: str = "development"
     debug: bool = True
     api_host: str = "0.0.0.0"

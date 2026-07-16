@@ -80,6 +80,7 @@ async def run_orchestration(
         "rag_context": "",
         "agent_outputs": {},
         "pending_action": {},
+        "package_payload": {},
         "citations": [],
         "final_response": "",
         "routing_trace": [],
@@ -92,6 +93,7 @@ async def run_orchestration(
     latency_ms = int((time.perf_counter() - started) * 1000)
     intents = result.get("intents") or ([result.get("intent")] if result.get("intent") else [])
     pending = result.get("pending_action") or {}
+    package_payload = result.get("package_payload") or {}
 
     session.add(
         ConversationMessage(
@@ -104,6 +106,7 @@ async def run_orchestration(
                 "intents": intents,
                 "routing_trace": result.get("routing_trace"),
                 "pending_action": pending,
+                "package_payload": package_payload,
                 "citations": result.get("citations") or [],
             },
         )
@@ -138,8 +141,9 @@ async def run_orchestration(
         "rag_context": result.get("rag_context") or "",
         "citations": result.get("citations") or [],
         "pending_action": pending or None,
+        "package_payload": package_payload or None,
         "agent_outputs": result.get("agent_outputs") or {},
         "latency_ms": latency_ms,
         "profile_summary": profile.summary,
-        "product": "LLM × マルチエージェント｜金融AIプロダクト",
+        "product": "TempestAI｜金融AIパッケージ",
     }

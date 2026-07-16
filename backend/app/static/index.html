@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LLM × マルチエージェント｜金融AIプロダクト</title>
+  <title>TempestAI｜金融AIパッケージ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -355,9 +355,9 @@
   <div class="wrap">
     <header>
       <div>
-        <div class="eyebrow">LLM × MULTI-AGENT</div>
-        <h1>金融AIプロダクト</h1>
-        <p class="sub">自然言語操作・行動分析提案・ナレッジRAGをマルチエージェントが統括する金融AIデモです。</p>
+        <div class="eyebrow">TEMPESTAI · FINTECH PACKAGES</div>
+        <h1>金融AIパッケージ事業</h1>
+        <p class="sub">生成AI×時系列予測×深層学習で定量・定性を統合。真の企業価値推定と意思決定構造変革を一気通貫。</p>
       </div>
       <div class="hdr-actions">
         <button type="button" class="btn-guide" id="openGuide" aria-haspopup="dialog">利用手順</button>
@@ -374,6 +374,12 @@
       <div class="stat"><div class="label">Activity Score</div><div class="value" id="statActivity">—</div></div>
       <div class="stat"><div class="label">User</div><div class="value" id="statUser" style="font-size:1rem;margin-top:0.45rem">—</div></div>
     </div>
+
+    <section class="panel" style="margin-bottom:1.25rem">
+      <h2 style="margin:0 0 .35rem">TempestAI パッケージ</h2>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.9rem">金融機関向け自社プロダクト。チャットまたは専用 API から実行できます。</p>
+      <div id="packageCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.85rem"></div>
+    </section>
 
     <div class="grid">
       <section class="panel">
@@ -419,6 +425,10 @@
             </div>
           </div>
           <div id="balancesBox" style="margin-top:1rem;font-size:.85rem;color:var(--muted);"></div>
+          <div id="packageBox" style="display:none;margin-top:1rem;padding:.85rem;border-radius:12px;border:1px solid #c7d2fe;background:#eef2ff;">
+            <div style="font-weight:700;margin-bottom:.35rem;color:#312e81;">TempestAI 結果</div>
+            <div id="packageSummary" style="font-size:.85rem;color:#3730a3;white-space:pre-wrap;"></div>
+          </div>
         </section>
         <section class="panel">
           <h2>Personalization</h2>
@@ -481,19 +491,19 @@
     </header>
     <div class="usage-guide-body" id="usageGuideBody">
       <div class="usage-guide-hero">
-        <p class="usage-guide-hero-kicker">LLM × MULTI-AGENT FINTECH</p>
-        <h2 class="usage-guide-hero-title">金融AIプロダクト — マルチエージェント / RAG / 操作確認</h2>
+        <p class="usage-guide-hero-kicker">TEMPESTAI · BANK / SECURITIES AI</p>
+        <h2 class="usage-guide-hero-title">企業価値推定 × 意思決定構造変革</h2>
         <p class="usage-guide-hero-lead">
-          複合質問を複数エージェントへ fan-out し、操作は確認ID付き下書き→実行の安全フローで扱います。
-          PostgreSQL ナレッジと行動イベントを画面に可視化します。
+          生成AI・時系列予測・深層学習で定量（財務・株価・金利）と定性（ニュース・BM・センチメント）を統合し、
+          真の企業価値推定から決裁構造の変革まで一気通貫します。
         </p>
         <div class="usage-guide-stack" aria-label="Tech stack">
-          <span class="usage-guide-stack-pill">Python · FastAPI</span>
-          <span class="usage-guide-stack-pill">LangChain · LangGraph</span>
-          <span class="usage-guide-stack-pill">PostgreSQL</span>
+          <span class="usage-guide-stack-pill">企業価値推定</span>
+          <span class="usage-guide-stack-pill">時系列予測</span>
+          <span class="usage-guide-stack-pill">深層融合</span>
+          <span class="usage-guide-stack-pill">意思決定構造</span>
+          <span class="usage-guide-stack-pill">LangGraph</span>
           <span class="usage-guide-stack-pill">RAG</span>
-          <span class="usage-guide-stack-pill">Next.js</span>
-          <span class="usage-guide-stack-pill">Streamlit</span>
         </div>
       </div>
 
@@ -517,30 +527,117 @@
    │
    ▼
 FastAPI
-   ├── /api/v1/chat              → LangGraph（複合意図 fan-out）
-   ├── /api/v1/accounts/{id}     → デモ口座残高
-   ├── /api/v1/actions/confirm   → 振込・カード停止の確定
-   ├── /api/v1/dashboard         → PostgreSQL 集計表示
-   ├── /api/v1/seed              → サンプルデータ投入
-   └── /                         → 本サービス画面
+   ├── /api/v1/chat                      → LangGraph（複合意図 fan-out）
+   ├── /api/v1/tempest/valuation/*       → 企業価値推定・高度予測
+   ├── /api/v1/tempest/decision/*        → 意思決定構造エンジン
+   ├── /api/v1/tempest/loan/*            → 融資稟議AI
+   ├── /api/v1/tempest/matching/*        → ビジネスマッチングAI
+   └── /                                 → 本サービス画面
           │
           ▼
-   PostgreSQL + FAISS vectorstore</pre>
+   定量（財務・株価・金利）× 定性NLP + PostgreSQL + FAISS</pre>
       </figure>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">PACKAGES</span>
+          <strong>Fintechパッケージ事業</strong>
+        </div>
+        <p>生成AI・時系列予測・深層学習を組み合わせ、金融意思決定エージェントを現場運用します。</p>
+        <ul class="usage-guide-items">
+          <li><strong>企業価値推定・高度予測</strong> — 財務/株価/金利 × ニュース/BM/センチメント</li>
+          <li><strong>意思決定構造エンジン</strong> — 定性・定量統合、基準木、シナリオ、反対仮説</li>
+          <li><strong>TempestAI融資稟議AI</strong> — 定性情報込みの稟議解析・推奨判断</li>
+          <li><strong>TempestAIビジネスマッチングAI</strong> — 取引先×外部情報の企業間マッチング</li>
+        </ul>
+      </article>
 
       <article class="usage-guide-featured">
         <div class="usage-guide-featured-head">
           <span class="usage-guide-featured-badge">RECOMMENDED</span>
           <strong>最短の進め方</strong>
         </div>
-        <p>初回はサンプルデータ投入から始めると、ナレッジ一覧・行動イベント・対話履歴がすぐに確認できます。</p>
+        <p>初回はサンプル投入後、企業価値推定 → 決裁構造の順が最短です。</p>
         <ul class="usage-guide-items">
-          <li>「サンプルデータを投入」で PostgreSQL にデモデータを登録</li>
-          <li>下部のナレッジ DB / 行動イベント表・口座残高を確認</li>
-          <li>複合例:「振込手数料について教えて。あと家計の改善提案もして」</li>
-          <li>操作例:「残高を教えて」→「太郎に3万円振り込んで」→ 確認実行</li>
-          <li>右カラムで Intents / Agents / Activity Score を確認</li>
+          <li>「ノースウィンド製造の企業価値を推定して」→ EV / 公正株価 / 予測パス</li>
+          <li>「メディブリッジの株価を高度予測して」→ 時系列＋センチメント</li>
+          <li>「グリーンロジのセンチメントを踏まえて公正価値を出して」→ 慎重スタンス例</li>
+          <li>続けて「決裁構造を変えて」→ 基準木・シナリオ・反対仮説へ接続</li>
+          <li>「融資稟議を審査して」/「マッチング候補を出して」で実務パッケージへ</li>
         </ul>
+      </article>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">VALUATION</span>
+          <strong>企業価値推定・高度予測の使い方</strong>
+        </div>
+        <p>
+          生成AI・時系列予測・深層学習を組み合わせ、財務・株価・金利などの<strong>定量</strong>と、
+          ニュース・ビジネスモデル・センチメントなどの<strong>定性</strong>を統合し、
+          真の企業価値推定と高度予測を行います。
+        </p>
+        <ul class="usage-guide-items">
+          <li><strong>定量</strong> — 財務諸表指標、株価系列、金利/WACC、モメンタム</li>
+          <li><strong>定性NLP</strong> — ニュース/BM叙述のセンチメント・テーマ抽出（言語処理）</li>
+          <li><strong>時系列予測</strong> — OLSトレンド＋指数平滑、ベース/上下バンド</li>
+          <li><strong>深層融合</strong> — 2層ネットワークで value / risk / growth ヘッド</li>
+          <li><strong>出力</strong> — 真のEV、公正株価、市場ギャップ、意思決定スタンス</li>
+        </ul>
+        <p style="margin:.85rem 0 .35rem;font-size:.8rem;font-weight:700;letter-spacing:.08em;color:#6366f1">DEMO UNIVERSE</p>
+        <ul class="usage-guide-items">
+          <li><code>NWD</code> ノースウィンド製造（精密部品）— 成長・強気センチメント寄り</li>
+          <li><code>MDB</code> メディブリッジ（医療機器卸）— ディフェンシブ＋提携テーマ</li>
+          <li><code>GLG</code> グリーンロジHD（物流）— レバレッジ・コスト圧力で慎重寄り</li>
+        </ul>
+        <p style="margin:.85rem 0 .35rem;font-size:.8rem;font-weight:700;letter-spacing:.08em;color:#6366f1">OUTPUT CHECKLIST（右欄「TempestAI 結果」）</p>
+        <ul class="usage-guide-items">
+          <li>EV / 公正株価 / 市場価格 — ギャップ（アップサイド）を確認</li>
+          <li>定性ラベル（強気・中立・弱気）と融合スコア</li>
+          <li>予測パス — チャット内の base / up / down</li>
+          <li>スタンス — 積増し / 中立保有 / 縮小</li>
+        </ul>
+        <p style="margin:.75rem 0 0;font-size:.85rem;color:#4338ca;line-height:1.55">
+          API: <code>POST /api/v1/tempest/valuation/analyze</code>　
+          銘柄一覧: <code>GET /api/v1/tempest/valuation/universe</code>　
+          意図: <code>value_forecast</code>
+        </p>
+      </article>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">PIPELINE</span>
+          <strong>推奨フロー（価値推定 → 決裁構造）</strong>
+        </div>
+        <p>単発のスコアで終わらせず、推定結果を意思決定構造に接続します。</p>
+        <ul class="usage-guide-items">
+          <li>① 「ノースウィンド製造の企業価値を推定して」で EV・予測を取得</li>
+          <li>② 「ノースウィンド製造の決裁構造を変えて」で基準木・シナリオ化</li>
+          <li>③ 必要なら「融資稟議を審査して」で実務判断へ接続</li>
+          <li>④ 公正価値ギャップを委員会の共通指標にし、定性悪化でモニタリング強化</li>
+        </ul>
+      </article>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">DECISION</span>
+          <strong>意思決定構造エンジンの使い方</strong>
+        </div>
+        <p>
+          目的は処理速度の向上ではなく、<strong>誰が・何を根拠に・どの反対仮説を残して決めるか</strong>を
+          再現可能・反証可能な形に変えることです。
+        </p>
+        <ul class="usage-guide-items">
+          <li><strong>Evidence Ledger</strong> — 定性・定量を同一台帳に載せ、口頭補足を廃止</li>
+          <li><strong>基準木</strong> — 収益返済 / 実行蓋然性 / マクロ整合 / 組織学習</li>
+          <li><strong>シナリオ3分岐</strong> — ベース / アップサイド / ダウンサイド＋トリガー</li>
+          <li><strong>Challenge Board</strong> — 反対仮説と回答責任者を必須化</li>
+          <li><strong>ガバナンス</strong> — 統合スコア帯で決裁権限・必須成果物を自動割当</li>
+        </ul>
+        <p style="margin:.75rem 0 0;font-size:.85rem;color:#4338ca;line-height:1.55">
+          画面右の「TempestAI 結果」にスタンス・統合スコア・構造転換サマリが出ます。
+          詳細はチャットの「TempestAI意思決定構造」見出しを確認してください。
+        </p>
       </article>
 
       <div class="usage-guide-section">
@@ -557,30 +654,62 @@ FastAPI
           </li>
           <li>
             <strong>2. データ投入</strong>
-            <p>「サンプルデータを投入」または <code>POST /api/v1/seed?force=true</code> でデモデータを登録します。</p>
+            <p>「サンプルデータを投入」または <code>POST /api/v1/seed?force=true</code> でデモデータを登録します（意思決定原則・審査観点ナレッジ含む）。</p>
           </li>
           <li>
-            <strong>3. マルチエージェント対話</strong>
-            <p>チャット送信後、意図が複数なら専門エージェントが並列実行され、見出し付きで統合回答されます。</p>
+            <strong>3. 企業価値推定・高度予測</strong>
+            <p><code>value_forecast</code> が定量×定性×時系列×深層融合を実行します。</p>
             <ul class="usage-guide-items">
-              <li><code>knowledge</code> — FAQ / 手数料 / 口座開設など</li>
-              <li><code>personalization</code> — 家計改善・おすすめ提案</li>
-              <li><code>operations</code> — 残高・振込下書き・カード停止</li>
+              <li>「ノースウィンド製造の企業価値を推定して」（NWD）</li>
+              <li>「メディブリッジの株価を高度予測して」（MDB）</li>
+              <li>「グリーンロジのセンチメントを踏まえて公正価値を出して」（GLG）</li>
+              <li>「企業価値推定と高度予測の枠組みを教えて」（ナレッジ）</li>
+              <li>API: <code>POST /api/v1/tempest/valuation/analyze</code> / <code>GET .../universe</code></li>
             </ul>
           </li>
           <li>
-            <strong>4. 自然言語操作（確認フロー）</strong>
-            <p>実送金は行いません。危険操作は確認ID付き下書き→「確認して実行」でデモ実行します。</p>
+            <strong>4. 意思決定構造を変革する</strong>
+            <p>チャットで構造変革を依頼すると <code>decision_structure</code> が起動します。</p>
+            <ul class="usage-guide-items">
+              <li>汎用:「定性・定量を統合して意思決定構造を変革して」</li>
+              <li>融資案件:「ノースウィンド製造の決裁構造を変えて」</li>
+              <li>マクロ方針:「与信スタンスを業況と定性で構造化して」</li>
+              <li>API: <code>POST /api/v1/tempest/decision/transform</code></li>
+            </ul>
+          </li>
+          <li>
+            <strong>5. 出力の読み方</strong>
+            <p>回答と右カラムで、次をセットで確認します（どれか一つだけでは不十分です）。</p>
+            <ul class="usage-guide-items">
+              <li>企業価値: EV・公正株価・市場価格・アップサイド・評価ラベル</li>
+              <li>予測: horizon 月の base / upside / downside と予想リターン</li>
+              <li>定性: センチメント（強気/中立/弱気）とテーマ（需要拡大など）</li>
+              <li>深層融合: fused_score と value/risk/growth ヘッド</li>
+              <li>構造変革: From→To、基準木、シナリオ、Challenge Board</li>
+              <li>次アクション（委員会指標化・モニタリング頻度など）</li>
+            </ul>
+          </li>
+          <li>
+            <strong>6. パッケージ連携</strong>
+            <p>価値推定 → 意思決定構造 → 稟議/マッチングの順で接続できます。</p>
+            <ul class="usage-guide-items">
+              <li><code>value_forecast</code> — 真の企業価値・高度予測</li>
+              <li><code>decision_structure</code> — 決裁構造変革</li>
+              <li><code>loan_screening</code> / <code>b2b_matching</code> / <code>sales_support</code></li>
+            </ul>
+          </li>
+          <li>
+            <strong>7. 自然言語操作（確認フロー）</strong>
+            <p>リテール操作デモです。実送金は行いません。</p>
             <ul class="usage-guide-items">
               <li>残高:「残高を教えて」</li>
               <li>振込:「太郎に3万円振り込んで」→ 確認ボックス表示</li>
               <li>カード:「カードを一時停止して」→ 確認後にデモ停止</li>
-              <li>キャンセル:「キャンセル」または Cancel API</li>
             </ul>
           </li>
           <li>
-            <strong>5. ダッシュボード確認</strong>
-            <p>画面下部にナレッジ・行動イベント・最近の対話・口座残高が表示されます（<code>GET /api/v1/dashboard</code>）。</p>
+            <strong>8. ダッシュボード確認</strong>
+            <p>パッケージカード・ナレッジ・行動イベントを確認（<code>GET /api/v1/dashboard</code>）。</p>
           </li>
         </ol>
       </div>
@@ -592,12 +721,29 @@ FastAPI
         </div>
         <p>チップをクリックするか、下の文をそのまま送信してください。</p>
         <ul class="usage-guide-items">
-          <li>振込手数料について教えて。あと家計の改善提案もして</li>
-          <li>残高を教えて</li>
-          <li>太郎に3万円振り込んで</li>
-          <li>カードを一時停止して</li>
-          <li>つみたてNISAの始め方を教えて</li>
-          <li>今月の家計改善を提案して</li>
+          <li>ノースウィンド製造の企業価値を推定して</li>
+          <li>メディブリッジの株価を高度予測して</li>
+          <li>グリーンロジのセンチメントを踏まえて公正価値を出して</li>
+          <li>定性・定量を統合して意思決定構造を変革して</li>
+          <li>ノースウィンド製造の決裁構造を変えて</li>
+          <li>ノースウィンド製造の融資稟議を審査して</li>
+          <li>精密加工企業のビジネスマッチング候補を出して</li>
+          <li>企業価値推定と高度予測の枠組みを教えて</li>
+        </ul>
+      </article>
+
+      <article class="usage-guide-featured">
+        <div class="usage-guide-featured-head">
+          <span class="usage-guide-featured-badge">ANTI-PATTERNS</span>
+          <strong>やってはいけないこと</strong>
+        </div>
+        <ul class="usage-guide-items">
+          <li>株価や財務だけで企業価値を決め、ニュース/BM/センチメントを無視する</li>
+          <li>予測の base だけ見て upside/downside バンドを捨てる</li>
+          <li>定性を「補足コメント」に落として定量だけで決裁する</li>
+          <li>反対意見・ダウンサイドを議事録から消す</li>
+          <li>処理時間短縮だけを成功指標にする（構造変革・価値推定が主目的）</li>
+          <li>Evidence Ledger / シナリオ / Challenge Board なしで本部合議する</li>
         </ul>
       </article>
 
@@ -607,7 +753,10 @@ FastAPI
           <strong>注意事項（デモ）</strong>
         </div>
         <ul class="usage-guide-items">
-          <li>振込・カード停止はメモリ上のデモ台帳です（プロセス再起動でリセット）</li>
+          <li>企業価値の財務・株価・ニュースはデモデータ（NWD / MDB / GLG）です</li>
+          <li>時系列・深層融合は説明可能なデモ実装（本番では実データ/モデルに置換）</li>
+          <li>意思決定ケース・稟議・マッチング企業もデモデータです</li>
+          <li>振込・カード停止はメモリ上のデモ台帳（再起動でリセット）</li>
           <li>API キーなしでも <code>LLM_PROVIDER=mock</code> で動作します</li>
           <li>本番 LLM 利用時は <code>OPENAI_API_KEY</code> 等を <code>.env</code> に設定</li>
           <li>PostgreSQL 既定: <code>127.0.0.1:15432</code> / DB <code>fintech_ai</code></li>
@@ -623,11 +772,14 @@ FastAPI
   <script>
     const API = "";
     const prompts = [
-      "振込手数料について教えて。あと家計の改善提案もして",
-      "残高を教えて",
-      "太郎へ3000円振り込みたい",
-      "カードを一時停止して",
-      "今月の家計改善を提案して",
+      "ノースウィンド製造の企業価値を推定して",
+      "メディブリッジの株価を高度予測して",
+      "グリーンロジのセンチメントを踏まえて公正価値を出して",
+      "定性・定量を統合して意思決定構造を変革して",
+      "ノースウィンド製造の決裁構造を変えて",
+      "ノースウィンド製造の融資稟議を審査して",
+      "精密加工企業のビジネスマッチング候補を出して",
+      "企業価値推定と高度予測の枠組みを教えて",
     ];
 
     let sessionId = null;
@@ -759,6 +911,7 @@ FastAPI
         renderProfile(data.profile || {});
         renderKnowledge(data.knowledge || []);
         renderEvents(data.events || []);
+        renderPackages(data.tempest?.packages || []);
 
         if (!chatBootstrapped) {
           chatEl.innerHTML = "";
@@ -766,7 +919,7 @@ FastAPI
           if (dialogue.length) {
             dialogue.forEach((m) => appendMessage(m.role, m.content, m.agent_name));
           } else {
-            chatEl.innerHTML = '<div class="empty">例: 「振込手数料は？」「家計の改善提案をして」</div>';
+            chatEl.innerHTML = '<div class="empty">例: 「融資稟議を審査して」「マッチング候補を出して」</div>';
           }
           chatBootstrapped = true;
         }
@@ -806,6 +959,7 @@ FastAPI
         document.getElementById("trace").textContent =
           (data.routing_trace || []).join("\n") || "まだ実行されていません";
         showPending(data.pending_action);
+        showPackage(data.package_payload);
         await loadDashboard();
         await loadBalances();
       } catch (err) {
@@ -815,6 +969,78 @@ FastAPI
         document.getElementById("sendBtn").disabled = false;
       }
     });
+
+    function renderPackages(packages) {
+      const root = document.getElementById("packageCards");
+      if (!root) return;
+      if (!packages.length) {
+        root.innerHTML = '<div style="color:var(--muted);font-size:.9rem">パッケージ情報を読み込み中...</div>';
+        return;
+      }
+      root.innerHTML = packages.map((p) => `
+        <article style="padding:1rem;border:1px solid rgba(99,102,241,.25);border-radius:14px;background:linear-gradient(180deg,#fff,#f8fafc)">
+          <div style="font-size:.72rem;letter-spacing:.12em;color:#4338ca;font-weight:700">${p.brand || "TempestAI"}</div>
+          <h3 style="margin:.35rem 0;font-size:1.05rem">${p.name}</h3>
+          <p style="margin:0 0 .65rem;font-size:.85rem;color:var(--muted);line-height:1.5">${p.tagline || ""}</p>
+          <ul style="margin:0;padding-left:1.1rem;font-size:.8rem;color:#334155;line-height:1.55">
+            ${(p.capabilities || []).slice(0, 3).map((c) => `<li>${c}</li>`).join("")}
+          </ul>
+        </article>
+      `).join("");
+    }
+
+    function showPackage(payload) {
+      const box = document.getElementById("packageBox");
+      const summary = document.getElementById("packageSummary");
+      if (!box || !summary) return;
+      if (!payload || !payload.type) {
+        box.style.display = "none";
+        return;
+      }
+      if (payload.type === "value_forecast") {
+        const v = payload.valuation || {};
+        const d = payload.decision || {};
+        const q = payload.qualitative || {};
+        summary.textContent = [
+          payload.product || "TempestAI企業価値推定・高度予測",
+          `銘柄: ${(payload.company || {}).name || "—"} (${(payload.company || {}).ticker || ""})`,
+          `EV: ${v.intrinsic_ev ?? "—"} / 公正株価: ${v.fair_price ?? "—"} (市場 ${v.market_price ?? "—"})`,
+          `評価: ${v.label || "—"} / アップサイド ${v.upside_to_fair != null ? (v.upside_to_fair * 100).toFixed(1) + "%" : "—"}`,
+          `定性: ${q.sentiment_label || "—"} / 融合 ${(payload.deep_fusion || {}).fused_score ?? "—"}`,
+          `スタンス: ${d.action || "—"}`,
+        ].join("\n");
+      } else if (payload.type === "decision_structure") {
+        const st = payload.stance || {};
+        const ch = (payload.transformed_structure || {}).structural_changes || [];
+        summary.textContent = [
+          payload.product || "TempestAI意思決定構造エンジン",
+          `案件: ${(payload.case || {}).title || "—"}`,
+          `スタンス: ${st.label || "—"} / 統合 ${(payload.scores || {}).integrated ?? "—"}`,
+          `構造転換: ${ch[0] || "—"}`,
+          `From→To: 単線稟議 → 基準木+シナリオ+反対仮説`,
+        ].join("\n");
+      } else if (payload.type === "loan_screening") {
+        const d = payload.decision || {};
+        summary.textContent = [
+          payload.product || "TempestAI融資稟議AI",
+          `案件: ${(payload.application || {}).borrower || "—"}`,
+          `判断: ${d.label || "—"} / 総合スコア ${(payload.scores || {}).blended ?? "—"}`,
+          `フラグ: ${(payload.risk_flags || []).slice(0, 2).join(" / ") || "—"}`,
+        ].join("\n");
+      } else if (payload.type === "b2b_matching") {
+        const tops = (payload.matches || []).slice(0, 3).map((m, i) =>
+          `${i + 1}. ${m.company?.name || "—"} (${m.score})`
+        );
+        summary.textContent = [
+          payload.product || "TempestAIビジネスマッチングAI",
+          `起点: ${(payload.source_company || {}).name || "—"}`,
+          ...tops,
+        ].join("\n");
+      } else {
+        summary.textContent = payload.message || JSON.stringify(payload, null, 2).slice(0, 400);
+      }
+      box.style.display = "block";
+    }
 
     function showPending(action) {
       const box = document.getElementById("pendingBox");

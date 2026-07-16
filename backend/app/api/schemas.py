@@ -25,10 +25,41 @@ class ChatResponse(BaseModel):
     rag_context: str = ""
     citations: list[str] = []
     pending_action: dict[str, Any] | None = None
+    package_payload: dict[str, Any] | None = None
     agent_outputs: dict[str, str] = Field(default_factory=dict)
     latency_ms: int = 0
     profile_summary: str | None = None
     product: str | None = None
+
+
+class LoanAnalyzeRequest(BaseModel):
+    query: str = Field(default="融資稟議を審査して", min_length=1, max_length=4000)
+    application_id: str | None = None
+
+
+class MatchingSearchRequest(BaseModel):
+    query: str = Field(default="ビジネスマッチング候補を出して", min_length=1, max_length=4000)
+    source_company_id: str | None = None
+    top_k: int = Field(default=3, ge=1, le=5)
+
+
+class DecisionTransformRequest(BaseModel):
+    query: str = Field(
+        default="定性・定量を統合して意思決定構造を変革して",
+        min_length=1,
+        max_length=4000,
+    )
+    case_id: str | None = None
+
+
+class ValuationAnalyzeRequest(BaseModel):
+    query: str = Field(
+        default="ノースウィンド製造の企業価値を推定して",
+        min_length=1,
+        max_length=4000,
+    )
+    ticker: str | None = None
+    horizon_months: int = Field(default=6, ge=1, le=12)
 
 
 class BehaviorEventRequest(BaseModel):
@@ -63,7 +94,24 @@ class ConfirmActionRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     app: str
-    product: str = "LLM × マルチエージェント｜金融AIプロダクト"
+    product: str = "TempestAI｜金融AIパッケージ"
     llm_provider: str
     rag_documents: int
-    agents: list[str] = ["operations", "personalization", "knowledge", "orchestrator"]
+    agents: list[str] = [
+        "operations",
+        "personalization",
+        "knowledge",
+        "loan_screening",
+        "b2b_matching",
+        "sales_support",
+        "decision_structure",
+        "value_forecast",
+        "orchestrator",
+    ]
+    packages: list[str] = [
+        "tempest-valuation",
+        "tempest-decision",
+        "tempest-loan",
+        "tempest-matching",
+        "tempest-ops",
+    ]
