@@ -43,6 +43,8 @@ docker build -t fintech-api .
 docker run --rm -p 8080:8080 -e DATABASE_URL=... fintech-api
 ```
 
+Railway の Postgres プラグインが渡す `DATABASE_URL`（`postgresql://...`）は起動時に自動で `postgresql+asyncpg://...` へ変換されます。
+
 ## クイックスタート
 
 ### 1. 前提

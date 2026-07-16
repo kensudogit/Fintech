@@ -1,3 +1,1 @@
-from app.db.session import get_db, init_db
-
-__all__ = ["get_db", "init_db"]
+"""Database package. Import session helpers from app.db.session explicitly."""

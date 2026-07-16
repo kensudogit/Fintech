@@ -1,7 +1,10 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.db_url import to_asyncpg_url, to_sync_url
 
 
 class Settings(BaseSettings):
@@ -12,10 +15,24 @@ class Settings(BaseSettings):
     debug: bool = True
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: str = "http://localhost:3000,http://localhost:8501"
+    cors_origins: str = "*"
 
     database_url: str = "postgresql+asyncpg://fintech:fintech_secret@127.0.0.1:15432/fintech_ai"
     database_url_sync: str = "postgresql://fintech:fintech_secret@127.0.0.1:15432/fintech_ai"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_async_database_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            return to_asyncpg_url(value)
+        return value
+
+    @field_validator("database_url_sync", mode="before")
+    @classmethod
+    def normalize_sync_database_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            return to_sync_url(value)
+        return value
 
     llm_provider: str = "mock"
     openai_api_key: str = ""
