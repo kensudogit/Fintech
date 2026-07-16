@@ -32,6 +32,17 @@ User (Next.js / Streamlit)
  PostgreSQL (users / events / dialogues / knowledge / agent_runs)
 ```
 
+## デプロイ（Dockerfile）
+
+リポジトリ直下に `Dockerfile` を置いています。Railway 等で
+`couldn't locate the dockerfile at path Dockerfile` となる場合は、
+**Root Directory をリポジトリルート**、**Dockerfile Path を `Dockerfile`** にしてください。
+
+```bash
+docker build -t fintech-api .
+docker run --rm -p 8080:8080 -e DATABASE_URL=... fintech-api
+```
+
 ## クイックスタート
 
 ### 1. 前提
