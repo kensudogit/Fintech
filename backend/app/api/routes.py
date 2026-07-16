@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.orchestrator import run_orchestration
@@ -16,10 +16,11 @@ from app.api.schemas import (
     SuggestResponse,
 )
 from app.config import get_settings
-from app.db.models import KnowledgeDocument
+from app.db.models import BehaviorEvent, ConversationMessage, ConversationSession, KnowledgeDocument, User
 from app.db.session import get_db
 from app.personalization.engine import personalization_engine
 from app.rag.pipeline import rag_service
+from app.seed import seed_sample_data
 
 router = APIRouter()
 
@@ -99,6 +100,132 @@ async def list_knowledge(db: AsyncSession = Depends(get_db)) -> list[dict]:
         }
         for r in rows
     ]
+
+
+@router.get("/events")
+async def list_events(
+    external_id: str = Query(default="demo-user-001"),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    user = await personalization_engine.ensure_user(db, external_id)
+    result = await db.execute(
+        select(BehaviorEvent)
+        .where(BehaviorEvent.user_id == user.id)
+        .order_by(BehaviorEvent.occurred_at.desc())
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+    return [
+        {
+            "id": str(r.id),
+            "event_type": r.event_type,
+            "payload": r.payload or {},
+            "occurred_at": r.occurred_at.isoformat() if r.occurred_at else None,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/dashboard")
+async def dashboard(
+    external_id: str = Query(default="demo-user-001"),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Aggregate sample data from PostgreSQL for the service UI."""
+    user = await personalization_engine.ensure_user(db, external_id)
+    profile_data = await personalization_engine.suggest(db, user)
+
+    knowledge = await db.execute(
+        select(KnowledgeDocument).order_by(KnowledgeDocument.created_at.asc()).limit(50)
+    )
+    events = await db.execute(
+        select(BehaviorEvent)
+        .where(BehaviorEvent.user_id == user.id)
+        .order_by(BehaviorEvent.occurred_at.desc())
+        .limit(15)
+    )
+    sessions = await db.execute(
+        select(ConversationSession)
+        .where(ConversationSession.user_id == user.id)
+        .order_by(ConversationSession.created_at.desc())
+        .limit(5)
+    )
+    session_rows = sessions.scalars().all()
+    recent_messages: list[dict] = []
+    if session_rows:
+        msg_result = await db.execute(
+            select(ConversationMessage)
+            .where(ConversationMessage.session_id == session_rows[0].id)
+            .order_by(ConversationMessage.created_at.asc())
+            .limit(20)
+        )
+        recent_messages = [
+            {
+                "role": m.role,
+                "content": m.content,
+                "agent_name": m.agent_name,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in msg_result.scalars().all()
+        ]
+
+    users = await db.execute(select(User).order_by(User.created_at.asc()).limit(20))
+
+    return {
+        "user": {
+            "id": str(user.id),
+            "external_id": user.external_id,
+            "display_name": user.display_name,
+            "segment": user.segment,
+            "risk_tolerance": user.risk_tolerance,
+        },
+        "profile": profile_data,
+        "knowledge": [
+            {
+                "id": str(r.id),
+                "title": r.title,
+                "category": r.category,
+                "source": r.source,
+                "content": r.content,
+            }
+            for r in knowledge.scalars().all()
+        ],
+        "events": [
+            {
+                "id": str(r.id),
+                "event_type": r.event_type,
+                "payload": r.payload or {},
+                "occurred_at": r.occurred_at.isoformat() if r.occurred_at else None,
+            }
+            for r in events.scalars().all()
+        ],
+        "recent_dialogue": recent_messages,
+        "users": [
+            {
+                "external_id": u.external_id,
+                "display_name": u.display_name,
+                "segment": u.segment,
+            }
+            for u in users.scalars().all()
+        ],
+        "counts": {
+            "knowledge": int(await db.scalar(select(func.count()).select_from(KnowledgeDocument)) or 0),
+            "events": int(
+                await db.scalar(
+                    select(func.count()).select_from(BehaviorEvent).where(BehaviorEvent.user_id == user.id)
+                )
+                or 0
+            ),
+        },
+    }
+
+
+@router.post("/seed")
+async def seed(force: bool = Query(default=False), db: AsyncSession = Depends(get_db)) -> dict:
+    stats = await seed_sample_data(db, force=force)
+    indexed = await rag_service.build_index(db)
+    return {"ok": True, "stats": stats, "indexed_documents": indexed}
 
 
 @router.post("/knowledge")

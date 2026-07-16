@@ -26,73 +26,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Create tables on first boot (Railway / fresh Postgres)."""
-    # Import models so metadata is populated
+    """Create tables and ensure sample data exists."""
     from app.db import models  # noqa: F401
+    from app.seed import seed_sample_data
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    await _seed_if_empty()
-
-
-async def _seed_if_empty() -> None:
-    from sqlalchemy import func, select
-
-    from app.db.models import KnowledgeDocument, User
-
     async with SessionLocal() as session:
-        user_count = await session.scalar(select(func.count()).select_from(User))
-        if not user_count:
-            session.add(
-                User(
-                    external_id="demo-user-001",
-                    display_name="Demo User",
-                    email="demo@fintech.local",
-                    segment="retail",
-                    risk_tolerance="moderate",
-                )
-            )
-
-        doc_count = await session.scalar(select(func.count()).select_from(KnowledgeDocument))
-        if not doc_count:
-            session.add_all(
-                [
-                    KnowledgeDocument(
-                        source="policy/faq",
-                        title="口座開設の流れ",
-                        content="口座開設は本人確認書類の提出、メール認証、初期入金の3ステップです。審査は通常1〜2営業日で完了します。",
-                        category="onboarding",
-                        metadata_={"lang": "ja"},
-                    ),
-                    KnowledgeDocument(
-                        source="policy/faq",
-                        title="振込手数料",
-                        content="同行宛ての振込は無料です。他行宛ては1件あたり145円（税込）です。プレミアムプランは月5回まで他行振込が無料になります。",
-                        category="payments",
-                        metadata_={"lang": "ja"},
-                    ),
-                    KnowledgeDocument(
-                        source="policy/faq",
-                        title="投資信託の購入",
-                        content="アプリの「投資」タブから銘柄を検索し、金額または口数を指定して購入できます。つみたてNISA対応商品には専用バッジが表示されます。",
-                        category="investments",
-                        metadata_={"lang": "ja"},
-                    ),
-                    KnowledgeDocument(
-                        source="policy/security",
-                        title="不正利用への対応",
-                        content="身に覚えのない取引を見つけた場合はアプリ内の「サポート」から即座にカード停止が可能です。24時間監視チームが対応します。",
-                        category="security",
-                        metadata_={"lang": "ja"},
-                    ),
-                    KnowledgeDocument(
-                        source="product/guide",
-                        title="家計分析の見方",
-                        content="行動データをもとに支出カテゴリ別の傾向と節約提案を表示します。週次レポートは毎週月曜に通知されます。",
-                        category="personalization",
-                        metadata_={"lang": "ja"},
-                    ),
-                ]
-            )
-        await session.commit()
+        await seed_sample_data(session, force=False)

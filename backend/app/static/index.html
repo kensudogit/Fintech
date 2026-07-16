@@ -31,7 +31,7 @@
         linear-gradient(180deg, #eef5f1 0%, var(--paper) 45%, #e7efe9 100%);
     }
     h1, h2 { font-family: Fraunces, Georgia, serif; letter-spacing: -0.02em; margin: 0; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+    .wrap { max-width: 1140px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
     header { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: end; margin-bottom: 1.5rem; }
     .eyebrow { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.2em; color: var(--accent-deep); margin-bottom: 0.4rem; }
     .sub { color: var(--muted); max-width: 36rem; margin-top: 0.75rem; line-height: 1.5; }
@@ -43,7 +43,22 @@
       padding: 0.75rem 1rem;
       font-size: 0.875rem;
     }
-    .grid { display: grid; gap: 1.25rem; grid-template-columns: 1.4fr 0.9fr; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 800px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 1rem;
+      padding: 0.9rem 1rem;
+    }
+    .stat .label { color: var(--muted); font-size: 0.75rem; }
+    .stat .value { font-size: 1.5rem; font-weight: 700; margin-top: 0.2rem; color: var(--accent-deep); }
+    .grid { display: grid; gap: 1.25rem; grid-template-columns: 1.35fr 0.95fr; }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
     .panel {
       border: 1px solid var(--line);
@@ -55,7 +70,7 @@
     }
     .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
     label { font-size: 0.875rem; color: var(--muted); }
-    input[type="text"], textarea {
+    input[type="text"] {
       border: 1px solid var(--line);
       background: rgba(255,255,255,0.9);
       border-radius: 0.75rem;
@@ -63,7 +78,7 @@
       font: inherit;
       outline: none;
     }
-    input[type="text"]:focus, textarea:focus { box-shadow: 0 0 0 2px var(--accent); }
+    input[type="text"]:focus { box-shadow: 0 0 0 2px var(--accent); }
     button {
       border: 1px solid var(--line);
       background: white;
@@ -77,8 +92,8 @@
     button.primary:hover { background: var(--accent-deep); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
     .chat {
-      min-height: 360px;
-      max-height: 52vh;
+      min-height: 280px;
+      max-height: 40vh;
       overflow-y: auto;
       background: rgba(255,255,255,0.55);
       border-radius: 1rem;
@@ -113,8 +128,8 @@
     .form input { flex: 1; }
     .error { color: var(--warn); font-size: 0.875rem; margin-top: 0.75rem; }
     .side { display: flex; flex-direction: column; gap: 1.25rem; }
-    .side h2 { font-size: 1.5rem; margin-bottom: 0.35rem; }
-    .side p { color: var(--muted); font-size: 0.875rem; margin: 0 0 0.75rem; }
+    .side h2, .panel h2 { font-size: 1.35rem; margin-bottom: 0.35rem; }
+    .side p, .panel > p { color: var(--muted); font-size: 0.875rem; margin: 0 0 0.75rem; }
     dl { margin: 0; display: grid; gap: 0.85rem; font-size: 0.9rem; }
     dt { color: var(--muted); }
     dd { margin: 0.15rem 0 0; font-weight: 700; }
@@ -145,6 +160,21 @@
       padding: 0.65rem 0.8rem;
       font-size: 0.875rem;
     }
+    .data-grid { display: grid; gap: 1.25rem; grid-template-columns: 1fr 1fr; margin-top: 1.25rem; }
+    @media (max-width: 900px) { .data-grid { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td { text-align: left; padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    .tag {
+      display: inline-block;
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--accent-deep);
+      border-radius: 0.35rem;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .scroll { max-height: 280px; overflow: auto; }
     .links { margin-top: 1rem; font-size: 0.8rem; color: var(--muted); }
     .links a { color: var(--accent-deep); }
   </style>
@@ -155,13 +185,20 @@
       <div>
         <div class="eyebrow">FINTECH AI</div>
         <h1>Ledger Guide</h1>
-        <p class="sub">自然言語操作・行動分析提案・ナレッジ連携を、マルチエージェントが統括します。</p>
+        <p class="sub">PostgreSQL のサンプルデータを読み込み、ナレッジ連携・行動分析・対話を表示します。</p>
       </div>
       <div class="badge">
-        <div style="color:var(--muted)">API</div>
+        <div style="color:var(--muted)">API / DB</div>
         <div id="health">checking...</div>
       </div>
     </header>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Knowledge</div><div class="value" id="statKnowledge">—</div></div>
+      <div class="stat"><div class="label">Behavior Events</div><div class="value" id="statEvents">—</div></div>
+      <div class="stat"><div class="label">Activity Score</div><div class="value" id="statActivity">—</div></div>
+      <div class="stat"><div class="label">User</div><div class="value" id="statUser" style="font-size:1rem;margin-top:0.45rem">—</div></div>
+    </div>
 
     <div class="grid">
       <section class="panel">
@@ -169,12 +206,13 @@
           <label>User ID
             <input id="externalId" type="text" value="demo-user-001" style="margin-left:0.4rem" />
           </label>
-          <button type="button" id="seedBtn">行動データを追加</button>
+          <button type="button" id="seedBtn">サンプルデータを投入</button>
+          <button type="button" id="refreshBtn">再読み込み</button>
           <a href="/docs" style="margin-left:auto;font-size:0.85rem;color:var(--accent-deep)">API Docs</a>
         </div>
 
         <div class="chat" id="chat">
-          <div class="empty">例: 「振込手数料は？」「家計の改善提案をして」</div>
+          <div class="empty">サンプル対話を読み込み中...</div>
         </div>
 
         <div class="prompts" id="prompts"></div>
@@ -184,7 +222,7 @@
           <button class="primary" type="submit" id="sendBtn">送信</button>
         </form>
         <div class="error" id="error" hidden></div>
-        <div class="links">JSON API: <a href="/api">/api</a> · Health: <a href="/api/v1/health">/api/v1/health</a></div>
+        <div class="links">Dashboard API: <a href="/api/v1/dashboard">/api/v1/dashboard</a></div>
       </section>
 
       <aside class="side">
@@ -204,10 +242,41 @@
           <div class="score"><span id="activity">0.0</span><span>activity</span></div>
           <div class="chips" id="interests"></div>
           <ul class="suggestions" id="suggestions">
-            <li>行動データを追加すると提案が表示されます。</li>
+            <li>読み込み中...</li>
           </ul>
         </section>
       </aside>
+    </div>
+
+    <div class="data-grid">
+      <section class="panel">
+        <h2>ナレッジ DB</h2>
+        <p>PostgreSQL <code>knowledge_documents</code></p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th>カテゴリ</th><th>タイトル / 内容</th></tr>
+            </thead>
+            <tbody id="knowledgeBody">
+              <tr><td colspan="2">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>行動イベント</h2>
+        <p>PostgreSQL <code>behavior_events</code></p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th>種別</th><th>詳細</th><th>日時</th></tr>
+            </thead>
+            <tbody id="eventsBody">
+              <tr><td colspan="3">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -222,6 +291,7 @@
 
     let sessionId = null;
     let loading = false;
+    let chatBootstrapped = false;
 
     const chatEl = document.getElementById("chat");
     const errorEl = document.getElementById("error");
@@ -242,6 +312,14 @@
       errorEl.textContent = msg || "";
     }
 
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\n", "<br>");
+    }
+
     function appendMessage(role, content, agentLabel) {
       const empty = chatEl.querySelector(".empty");
       if (empty) empty.remove();
@@ -252,47 +330,106 @@
       chatEl.scrollTop = chatEl.scrollHeight;
     }
 
-    function escapeHtml(s) {
-      return s
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll("\n", "<br>");
+    function renderProfile(profile) {
+      document.getElementById("profileSummary").textContent =
+        profile.profile_summary || "行動データと対話履歴から学習します。";
+      document.getElementById("activity").textContent = Number(profile.activity_score || 0).toFixed(1);
+      document.getElementById("statActivity").textContent = Number(profile.activity_score || 0).toFixed(1);
+      const interests = document.getElementById("interests");
+      interests.innerHTML = "";
+      (profile.interests || []).slice(0, 8).forEach((i) => {
+        const span = document.createElement("span");
+        span.textContent = i;
+        interests.appendChild(span);
+      });
+      const ul = document.getElementById("suggestions");
+      ul.innerHTML = "";
+      (profile.suggestions || []).forEach((s) => {
+        const li = document.createElement("li");
+        li.textContent = s;
+        ul.appendChild(li);
+      });
+    }
+
+    function renderKnowledge(rows) {
+      const body = document.getElementById("knowledgeBody");
+      body.innerHTML = "";
+      if (!rows.length) {
+        body.innerHTML = "<tr><td colspan='2'>ナレッジがありません</td></tr>";
+        return;
+      }
+      rows.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="tag">${escapeHtml(r.category || "-")}</span></td>
+          <td><strong>${escapeHtml(r.title)}</strong><br><span style="color:var(--muted)">${escapeHtml((r.content || "").slice(0, 120))}</span></td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function renderEvents(rows) {
+      const body = document.getElementById("eventsBody");
+      body.innerHTML = "";
+      if (!rows.length) {
+        body.innerHTML = "<tr><td colspan='3'>イベントがありません</td></tr>";
+        return;
+      }
+      rows.forEach((r) => {
+        const p = r.payload || {};
+        const detail = [p.category, p.product, p.amount != null ? `¥${p.amount}` : null]
+          .filter(Boolean)
+          .join(" / ");
+        const when = r.occurred_at ? new Date(r.occurred_at).toLocaleString("ja-JP") : "-";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="tag">${escapeHtml(r.event_type)}</span></td>
+          <td>${escapeHtml(detail || JSON.stringify(p))}</td>
+          <td style="white-space:nowrap;color:var(--muted)">${escapeHtml(when)}</td>
+        `;
+        body.appendChild(tr);
+      });
     }
 
     async function refreshHealth() {
       try {
         const h = await fetch(`${API}/api/v1/health`).then((r) => r.json());
         document.getElementById("health").textContent =
-          `${h.status} · ${h.llm_provider} · docs=${h.rag_documents}`;
+          `${h.status} · ${h.llm_provider} · rag=${h.rag_documents}`;
       } catch {
         document.getElementById("health").textContent = "API offline";
       }
     }
 
-    async function refreshSuggestions() {
+    async function loadDashboard() {
       const id = externalIdEl.value.trim() || "demo-user-001";
+      showError("");
       try {
-        const data = await fetch(`${API}/api/v1/users/${encodeURIComponent(id)}/suggestions`).then((r) => r.json());
-        document.getElementById("profileSummary").textContent =
-          data.profile_summary || "行動データと対話履歴から学習します。";
-        document.getElementById("activity").textContent = Number(data.activity_score || 0).toFixed(1);
-        const interests = document.getElementById("interests");
-        interests.innerHTML = "";
-        (data.interests || []).slice(0, 6).forEach((i) => {
-          const span = document.createElement("span");
-          span.textContent = i;
-          interests.appendChild(span);
+        const data = await fetch(`${API}/api/v1/dashboard?external_id=${encodeURIComponent(id)}`).then(async (r) => {
+          if (!r.ok) throw new Error(await r.text());
+          return r.json();
         });
-        const ul = document.getElementById("suggestions");
-        ul.innerHTML = "";
-        (data.suggestions || ["行動データを追加すると提案が表示されます。"]).forEach((s) => {
-          const li = document.createElement("li");
-          li.textContent = s;
-          ul.appendChild(li);
-        });
-      } catch {
-        /* ignore */
+
+        document.getElementById("statKnowledge").textContent = data.counts?.knowledge ?? data.knowledge?.length ?? 0;
+        document.getElementById("statEvents").textContent = data.counts?.events ?? data.events?.length ?? 0;
+        document.getElementById("statUser").textContent = data.user?.display_name || data.user?.external_id || id;
+
+        renderProfile(data.profile || {});
+        renderKnowledge(data.knowledge || []);
+        renderEvents(data.events || []);
+
+        if (!chatBootstrapped) {
+          chatEl.innerHTML = "";
+          const dialogue = data.recent_dialogue || [];
+          if (dialogue.length) {
+            dialogue.forEach((m) => appendMessage(m.role, m.content, m.agent_name));
+          } else {
+            chatEl.innerHTML = '<div class="empty">例: 「振込手数料は？」「家計の改善提案をして」</div>';
+          }
+          chatBootstrapped = true;
+        }
+      } catch (err) {
+        showError(err.message || "ダッシュボードの読み込みに失敗しました");
       }
     }
 
@@ -325,7 +462,7 @@
         document.getElementById("latency").textContent = data.latency_ms != null ? `${data.latency_ms} ms` : "—";
         document.getElementById("trace").textContent =
           (data.routing_trace || []).join("\n") || "まだ実行されていません";
-        await refreshSuggestions();
+        await loadDashboard();
       } catch (err) {
         showError(err.message || "送信に失敗しました");
       } finally {
@@ -335,29 +472,36 @@
     });
 
     document.getElementById("seedBtn").addEventListener("click", async () => {
-      const id = externalIdEl.value.trim() || "demo-user-001";
       showError("");
       try {
-        const events = [
-          { event_type: "expense", payload: { category: "飲食", amount: 2100, product: "デビット" } },
-          { event_type: "invest_view", payload: { category: "投資", product: "つみたてNISA" } },
-          { event_type: "transfer", payload: { category: "生活費", amount: 40000, product: "普通預金" } },
-        ];
-        for (const ev of events) {
-          await fetch(`${API}/api/v1/events`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ external_id: id, ...ev }),
-          });
-        }
-        await refreshSuggestions();
+        const res = await fetch(`${API}/api/v1/seed?force=true`, { method: "POST" });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        chatBootstrapped = false;
+        await refreshHealth();
+        await loadDashboard();
+        showError(`投入完了: knowledge=${data.stats.knowledge}, events=${data.stats.events}, messages=${data.stats.messages}`);
+        errorEl.style.color = "var(--accent-deep)";
       } catch (err) {
-        showError(err.message || "イベント登録に失敗しました");
+        errorEl.style.color = "var(--warn)";
+        showError(err.message || "サンプルデータ投入に失敗しました");
       }
     });
 
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+      chatBootstrapped = false;
+      errorEl.style.color = "var(--warn)";
+      await refreshHealth();
+      await loadDashboard();
+    });
+
+    externalIdEl.addEventListener("change", async () => {
+      chatBootstrapped = false;
+      await loadDashboard();
+    });
+
     refreshHealth();
-    refreshSuggestions();
+    loadDashboard();
   </script>
 </body>
 </html>
