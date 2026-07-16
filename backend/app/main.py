@@ -5,13 +5,16 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
+from app.api.test_routes import router as test_router
 from app.config import get_settings
 from app.db.session import SessionLocal, init_db
 from app.rag.pipeline import rag_service
+from app.testing.runner import HTML_REPORT, reports_dir
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -40,11 +43,26 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router, prefix="/api/v1")
+    app.include_router(test_router, prefix="/api/v1")
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    reports_dir()
 
     @app.get("/")
     async def root() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    @app.get("/tests")
+    async def tests_console() -> FileResponse:
+        return FileResponse(STATIC_DIR / "tests.html")
+
+    @app.get("/tests/report")
+    async def tests_html_report() -> FileResponse:
+        if not HTML_REPORT.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="HTML report not found. Open /tests and click テストを実行, or POST /api/v1/tests/run",
+            )
+        return FileResponse(HTML_REPORT, media_type="text/html")
 
     @app.get("/api")
     async def api_info() -> dict:
@@ -54,6 +72,9 @@ def create_app() -> FastAPI:
             "health": "/api/v1/health",
             "chat": "/api/v1/chat",
             "ui": "/",
+            "tests": "/tests",
+            "tests_run": "/api/v1/tests/run",
+            "tests_sources": "/api/v1/tests/sources",
         }
 
     return app

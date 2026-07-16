@@ -25,3 +25,5 @@ google-cloud-secret-manager>=2.20.0
 python-multipart>=0.0.12
 aiofiles>=24.1.0
 streamlit>=1.40.0
+pytest>=8.0.0
+pytest-html>=4.1.0

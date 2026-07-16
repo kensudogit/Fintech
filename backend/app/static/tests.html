@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Python ソース &amp; テスト結果 | TempestAI</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --card: #ffffff;
+      --line: #e2e8f0;
+      --ok: #15803d;
+      --bad: #b91c1c;
+      --accent: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", "Hiragino Sans", Meiryo, sans-serif;
+      color: var(--ink); background:
+        radial-gradient(900px 420px at 10% -10%, #dbeafe 0%, transparent 55%),
+        linear-gradient(180deg, #eef2ff, var(--bg));
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+    header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.25rem; }
+    .eyebrow { font-size: .75rem; letter-spacing: .16em; font-weight: 700; color: var(--accent); }
+    h1 { margin: .25rem 0; font-size: 1.8rem; }
+    .sub { color: var(--muted); margin: 0; max-width: 40rem; line-height: 1.55; }
+    .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+    button, .btn {
+      border: 1px solid var(--line); background: #fff; border-radius: 10px;
+      padding: .55rem .9rem; cursor: pointer; font: inherit; text-decoration: none; color: inherit;
+    }
+    button.primary, .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: .6; cursor: wait; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin: 1rem 0 1.25rem; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; }
+    .stat .label { font-size: .75rem; color: var(--muted); letter-spacing: .06em; }
+    .stat .value { font-size: 1.45rem; font-weight: 700; margin-top: .25rem; }
+    .ok { color: var(--ok); } .bad { color: var(--bad); }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+    h2 { margin: 0 0 .35rem; font-size: 1.1rem; }
+    p.hint { margin: 0 0 .85rem; color: var(--muted); font-size: .9rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th, td { text-align: left; padding: .55rem .45rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: .78rem; letter-spacing: .04em; }
+    .mono { font-family: ui-monospace, Consolas, monospace; font-size: .82rem; }
+    .scroll { max-height: 420px; overflow: auto; }
+    pre {
+      margin: 0; padding: .85rem; background: #0b1220; color: #e2e8f0;
+      border-radius: 12px; overflow: auto; max-height: 280px; font-size: .8rem;
+    }
+    .badge { display: inline-block; padding: .15rem .45rem; border-radius: 999px; font-size: .72rem; background: #e0e7ff; color: #3730a3; }
+    .badge.no { background: #fee2e2; color: #991b1b; }
+    iframe { width: 100%; min-height: 520px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="eyebrow">TEMPESTAI · QA CONSOLE</div>
+        <h1>Python ソース一覧 &amp; テスト結果</h1>
+        <p class="sub">全 Python ソースのインベントリと pytest 実行結果を Web から確認できます。</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/">サービス画面</a>
+        <a class="btn" href="/docs">API Docs</a>
+        <button type="button" class="primary" id="runBtn">テストを実行</button>
+        <a class="btn" id="htmlLink" href="/tests/report" target="_blank">HTML レポート</a>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><div class="label">STATUS</div><div class="value" id="stStatus">—</div></div>
+      <div class="stat"><div class="label">PASSED</div><div class="value ok" id="stPassed">—</div></div>
+      <div class="stat"><div class="label">FAILED</div><div class="value bad" id="stFailed">—</div></div>
+      <div class="stat"><div class="label">ELAPSED</div><div class="value" id="stElapsed">—</div></div>
+      <div class="stat"><div class="label">SOURCES</div><div class="value" id="stSources">—</div></div>
+    </div>
+
+    <section class="panel">
+      <h2>最新テスト結果</h2>
+      <p class="hint">POST /api/v1/tests/run の結果サマリ。詳細は HTML レポートを参照。</p>
+      <pre id="summaryBox">まだ実行されていません。「テストを実行」を押してください。</pre>
+    </section>
+
+    <section class="panel">
+      <h2>pytest HTML レポート</h2>
+      <p class="hint">pytest-html の self-contained レポートを埋め込み表示します。</p>
+      <iframe id="reportFrame" title="pytest report" src="about:blank"></iframe>
+    </section>
+
+    <section class="panel">
+      <h2>全 Python ソース</h2>
+      <p class="hint">backend 配下の .py を走査し、docstring / クラス / 公開関数 / テスト有無を表示します。</p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Lines</th>
+              <th>Doc</th>
+              <th>Classes</th>
+              <th>Tests</th>
+            </tr>
+          </thead>
+          <tbody id="sourceBody">
+            <tr><td colspan="5">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API = "";
+
+    async function loadStatus() {
+      const meta = await fetch(`${API}/api/v1/tests/status`).then((r) => r.json());
+      const sum = meta.summary || {};
+      const ok = meta.ok;
+      document.getElementById("stStatus").textContent = meta.running ? "RUNNING" : (ok === true ? "PASSED" : ok === false ? "FAILED" : "NO RUN");
+      document.getElementById("stStatus").className = "value " + (ok === true ? "ok" : ok === false ? "bad" : "");
+      document.getElementById("stPassed").textContent = sum.passed ?? "—";
+      document.getElementById("stFailed").textContent =
+        sum.failed != null || sum.errors != null
+          ? String((sum.failed || 0) + (sum.errors || 0))
+          : "—";
+      document.getElementById("stElapsed").textContent = meta.elapsed_ms != null ? `${meta.elapsed_ms} ms` : "—";
+
+      if (meta.json_exists) {
+        const report = await fetch(`${API}/api/v1/tests/report`).then((r) => r.json());
+        document.getElementById("summaryBox").textContent = JSON.stringify(
+          {
+            ok: report.ok,
+            exit_code: report.exit_code,
+            summary: report.summary,
+            finished_at: report.finished_at,
+            elapsed_ms: report.elapsed_ms,
+          },
+          null,
+          2
+        );
+      }
+      if (meta.html_exists) {
+        document.getElementById("reportFrame").src = "/tests/report?" + Date.now();
+      }
+    }
+
+    async function loadSources() {
+      const rows = await fetch(`${API}/api/v1/tests/sources`).then((r) => r.json());
+      document.getElementById("stSources").textContent = String(rows.length);
+      const body = document.getElementById("sourceBody");
+      body.innerHTML = rows.map((r) => `
+        <tr>
+          <td class="mono">${r.path}</td>
+          <td>${r.lines}</td>
+          <td>${r.docstring || "—"}</td>
+          <td class="mono">${(r.classes || []).slice(0, 4).join(", ") || "—"}</td>
+          <td><span class="badge ${r.has_tests ? "" : "no"}">${r.has_tests ? "covered" : "check"}</span></td>
+        </tr>
+      `).join("");
+    }
+
+    document.getElementById("runBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("runBtn");
+      btn.disabled = true;
+      btn.textContent = "実行中...";
+      document.getElementById("stStatus").textContent = "RUNNING";
+      try {
+        const res = await fetch(`${API}/api/v1/tests/run?wait=true`, { method: "POST" });
+        const data = await res.json();
+        document.getElementById("summaryBox").textContent = JSON.stringify(
+          { ok: data.ok, exit_code: data.exit_code, summary: data.summary, elapsed_ms: data.elapsed_ms },
+          null,
+          2
+        );
+        await loadStatus();
+      } catch (e) {
+        document.getElementById("summaryBox").textContent = String(e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "テストを実行";
+      }
+    });
+
+    loadSources();
+    loadStatus();
+  </script>
+</body>
+</html>

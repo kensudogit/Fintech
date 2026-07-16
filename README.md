@@ -41,6 +41,23 @@ LangGraph Orchestrator
 Quant + Qual NLP + Evidence Ledger + PostgreSQL + FAISS
 ```
 
+## テスト（Web 確認）
+
+全 Python ソースのインベントリと pytest 結果をブラウザから確認できます。
+
+```powershell
+cd backend
+pip install -r requirements.txt
+pytest -q
+# または API 経由
+uvicorn app.main:app --host 127.0.0.1 --port 8098
+```
+
+- テストコンソール: http://127.0.0.1:8098/tests
+- 実行: `POST /api/v1/tests/run`
+- ソース一覧: `GET /api/v1/tests/sources`
+- HTML レポート: http://127.0.0.1:8098/tests/report
+
 ## クイックスタート
 
 ```powershell
