@@ -68,9 +68,9 @@ cd C:\devlop\Fintech
 docker compose up -d --build
 ```
 
-- API docs: http://localhost:8000/docs
+- API docs: http://localhost:8080/docs
 - Streamlit: http://localhost:8501
-- PostgreSQL: `localhost:5432` / user=`fintech` / pass=`fintech_secret` / db=`fintech_ai`
+- PostgreSQL: `localhost:15432` / user=`fintech` / pass=`fintech_secret` / db=`fintech_ai`
 
 ### 4. フロントエンド（Next.js）
 
@@ -114,7 +114,7 @@ python -m scripts.seed_events
 ### Chat 例
 
 ```powershell
-curl -X POST http://localhost:8000/api/v1/chat `
+curl -X POST http://localhost:8080/api/v1/chat `
   -H "Content-Type: application/json" `
   -d '{"message":"振込手数料を教えて","external_id":"demo-user-001"}'
 ```

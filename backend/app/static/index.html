@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fintech AI Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #10231c;
+      --muted: #4d6359;
+      --paper: #f3f7f4;
+      --panel: rgba(255, 255, 255, 0.82);
+      --line: rgba(16, 35, 28, 0.12);
+      --accent: #0f766e;
+      --accent-deep: #115e59;
+      --glow: rgba(15, 118, 110, 0.18);
+      --warn: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Manrope, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(15, 118, 110, 0.16), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(180, 83, 9, 0.1), transparent 50%),
+        linear-gradient(180deg, #eef5f1 0%, var(--paper) 45%, #e7efe9 100%);
+    }
+    h1, h2 { font-family: Fraunces, Georgia, serif; letter-spacing: -0.02em; margin: 0; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+    header { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: end; margin-bottom: 1.5rem; }
+    .eyebrow { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.2em; color: var(--accent-deep); margin-bottom: 0.4rem; }
+    .sub { color: var(--muted); max-width: 36rem; margin-top: 0.75rem; line-height: 1.5; }
+    .badge {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+    }
+    .grid { display: grid; gap: 1.25rem; grid-template-columns: 1.4fr 0.9fr; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border-radius: 1.5rem;
+      padding: 1.25rem;
+      box-shadow: 0 20px 60px var(--glow);
+    }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    label { font-size: 0.875rem; color: var(--muted); }
+    input[type="text"], textarea {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.9);
+      border-radius: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      font: inherit;
+      outline: none;
+    }
+    input[type="text"]:focus, textarea:focus { box-shadow: 0 0 0 2px var(--accent); }
+    button {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 0.75rem;
+      padding: 0.65rem 1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: white; border-color: transparent; }
+    button.primary:hover { background: var(--accent-deep); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .chat {
+      min-height: 360px;
+      max-height: 52vh;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.55);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .msg {
+      max-width: 90%;
+      border-radius: 1rem;
+      padding: 0.85rem 1rem;
+      font-size: 0.925rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .msg.user { margin-left: auto; background: var(--accent); color: white; }
+    .msg.assistant { margin-right: auto; background: white; border: 1px solid var(--line); }
+    .msg .who { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; margin-bottom: 0.25rem; }
+    .empty { margin: auto; color: var(--muted); text-align: center; }
+    .prompts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .prompts button {
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      padding: 0.35rem 0.75rem;
+      background: rgba(255,255,255,0.7);
+    }
+    .form { display: flex; gap: 0.5rem; }
+    .form input { flex: 1; }
+    .error { color: var(--warn); font-size: 0.875rem; margin-top: 0.75rem; }
+    .side { display: flex; flex-direction: column; gap: 1.25rem; }
+    .side h2 { font-size: 1.5rem; margin-bottom: 0.35rem; }
+    .side p { color: var(--muted); font-size: 0.875rem; margin: 0 0 0.75rem; }
+    dl { margin: 0; display: grid; gap: 0.85rem; font-size: 0.9rem; }
+    dt { color: var(--muted); }
+    dd { margin: 0.15rem 0 0; font-weight: 700; }
+    .mono {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: rgba(255,255,255,0.7);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      white-space: pre-wrap;
+    }
+    .score { font-size: 2rem; font-weight: 700; color: var(--accent-deep); margin-bottom: 0.75rem; }
+    .score span { font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-left: 0.35rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .chips span {
+      background: rgba(255,255,255,0.85);
+      border-radius: 0.4rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .suggestions { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+    .suggestions li {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.7);
+      border-radius: 0.75rem;
+      padding: 0.65rem 0.8rem;
+      font-size: 0.875rem;
+    }
+    .links { margin-top: 1rem; font-size: 0.8rem; color: var(--muted); }
+    .links a { color: var(--accent-deep); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="eyebrow">FINTECH AI</div>
+        <h1>Ledger Guide</h1>
+        <p class="sub">自然言語操作・行動分析提案・ナレッジ連携を、マルチエージェントが統括します。</p>
+      </div>
+      <div class="badge">
+        <div style="color:var(--muted)">API</div>
+        <div id="health">checking...</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="toolbar">
+          <label>User ID
+            <input id="externalId" type="text" value="demo-user-001" style="margin-left:0.4rem" />
+          </label>
+          <button type="button" id="seedBtn">行動データを追加</button>
+          <a href="/docs" style="margin-left:auto;font-size:0.85rem;color:var(--accent-deep)">API Docs</a>
+        </div>
+
+        <div class="chat" id="chat">
+          <div class="empty">例: 「振込手数料は？」「家計の改善提案をして」</div>
+        </div>
+
+        <div class="prompts" id="prompts"></div>
+
+        <form class="form" id="chatForm">
+          <input id="message" type="text" placeholder="質問や操作内容を入力..." autocomplete="off" />
+          <button class="primary" type="submit" id="sendBtn">送信</button>
+        </form>
+        <div class="error" id="error" hidden></div>
+        <div class="links">JSON API: <a href="/api">/api</a> · Health: <a href="/api/v1/health">/api/v1/health</a></div>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <h2>Orchestration</h2>
+          <p>直近のルーティング結果</p>
+          <dl>
+            <div><dt>Intent</dt><dd id="intent">—</dd></div>
+            <div><dt>Agents</dt><dd id="agents">—</dd></div>
+            <div><dt>Latency</dt><dd id="latency">—</dd></div>
+            <div><dt>Trace</dt><dd><div class="mono" id="trace">まだ実行されていません</div></dd></div>
+          </dl>
+        </section>
+        <section class="panel">
+          <h2>Personalization</h2>
+          <p id="profileSummary">行動データと対話履歴から学習します。</p>
+          <div class="score"><span id="activity">0.0</span><span>activity</span></div>
+          <div class="chips" id="interests"></div>
+          <ul class="suggestions" id="suggestions">
+            <li>行動データを追加すると提案が表示されます。</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const API = "";
+    const prompts = [
+      "振込手数料について教えて",
+      "今月の家計改善を提案して",
+      "口座開設の流れは？",
+      "カードを一時停止したい",
+    ];
+
+    let sessionId = null;
+    let loading = false;
+
+    const chatEl = document.getElementById("chat");
+    const errorEl = document.getElementById("error");
+    const promptsEl = document.getElementById("prompts");
+    const messageEl = document.getElementById("message");
+    const externalIdEl = document.getElementById("externalId");
+
+    prompts.forEach((p) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = p;
+      b.onclick = () => { messageEl.value = p; messageEl.focus(); };
+      promptsEl.appendChild(b);
+    });
+
+    function showError(msg) {
+      errorEl.hidden = !msg;
+      errorEl.textContent = msg || "";
+    }
+
+    function appendMessage(role, content, agentLabel) {
+      const empty = chatEl.querySelector(".empty");
+      if (empty) empty.remove();
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      div.innerHTML = `<div class="who">${role === "user" ? "You" : (agentLabel || "Assistant")}</div>${escapeHtml(content)}`;
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      return s
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\n", "<br>");
+    }
+
+    async function refreshHealth() {
+      try {
+        const h = await fetch(`${API}/api/v1/health`).then((r) => r.json());
+        document.getElementById("health").textContent =
+          `${h.status} · ${h.llm_provider} · docs=${h.rag_documents}`;
+      } catch {
+        document.getElementById("health").textContent = "API offline";
+      }
+    }
+
+    async function refreshSuggestions() {
+      const id = externalIdEl.value.trim() || "demo-user-001";
+      try {
+        const data = await fetch(`${API}/api/v1/users/${encodeURIComponent(id)}/suggestions`).then((r) => r.json());
+        document.getElementById("profileSummary").textContent =
+          data.profile_summary || "行動データと対話履歴から学習します。";
+        document.getElementById("activity").textContent = Number(data.activity_score || 0).toFixed(1);
+        const interests = document.getElementById("interests");
+        interests.innerHTML = "";
+        (data.interests || []).slice(0, 6).forEach((i) => {
+          const span = document.createElement("span");
+          span.textContent = i;
+          interests.appendChild(span);
+        });
+        const ul = document.getElementById("suggestions");
+        ul.innerHTML = "";
+        (data.suggestions || ["行動データを追加すると提案が表示されます。"]).forEach((s) => {
+          const li = document.createElement("li");
+          li.textContent = s;
+          ul.appendChild(li);
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+
+    document.getElementById("chatForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = messageEl.value.trim();
+      if (!text || loading) return;
+      loading = true;
+      document.getElementById("sendBtn").disabled = true;
+      showError("");
+      messageEl.value = "";
+      appendMessage("user", text);
+      try {
+        const res = await fetch(`${API}/api/v1/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: text,
+            external_id: externalIdEl.value.trim() || "demo-user-001",
+            session_id: sessionId,
+            channel: "web",
+          }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        sessionId = data.session_id;
+        appendMessage("assistant", data.answer, (data.agents_used || []).join(", ") || "Assistant");
+        document.getElementById("intent").textContent = data.intent || "—";
+        document.getElementById("agents").textContent = (data.agents_used || []).join(" → ") || "—";
+        document.getElementById("latency").textContent = data.latency_ms != null ? `${data.latency_ms} ms` : "—";
+        document.getElementById("trace").textContent =
+          (data.routing_trace || []).join("\n") || "まだ実行されていません";
+        await refreshSuggestions();
+      } catch (err) {
+        showError(err.message || "送信に失敗しました");
+      } finally {
+        loading = false;
+        document.getElementById("sendBtn").disabled = false;
+      }
+    });
+
+    document.getElementById("seedBtn").addEventListener("click", async () => {
+      const id = externalIdEl.value.trim() || "demo-user-001";
+      showError("");
+      try {
+        const events = [
+          { event_type: "expense", payload: { category: "飲食", amount: 2100, product: "デビット" } },
+          { event_type: "invest_view", payload: { category: "投資", product: "つみたてNISA" } },
+          { event_type: "transfer", payload: { category: "生活費", amount: 40000, product: "普通預金" } },
+        ];
+        for (const ev of events) {
+          await fetch(`${API}/api/v1/events`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ external_id: id, ...ev }),
+          });
+        }
+        await refreshSuggestions();
+      } catch (err) {
+        showError(err.message || "イベント登録に失敗しました");
+      }
+    });
+
+    refreshHealth();
+    refreshSuggestions();
+  </script>
+</body>
+</html>

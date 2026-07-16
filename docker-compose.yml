@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fintech-postgres
+    environment:
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech_secret
+      POSTGRES_DB: fintech_ai
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d fintech_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fintech-api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://fintech:fintech_secret@postgres:5432/fintech_ai
+      DATABASE_URL_SYNC: postgresql://fintech:fintech_secret@postgres:5432/fintech_ai
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./backend:/app
+      - knowledge_store:/app/data/knowledge
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  streamlit:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    container_name: fintech-streamlit
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./streamlit_app:/app
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  knowledge_store:

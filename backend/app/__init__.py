@@ -1,0 +1,1 @@
+"""Fintech AI Platform backend."""
