@@ -52,24 +52,88 @@ async def _persist_evidence(db: AsyncSession, item: dict) -> str | None:
         f"意思決定への寄与: {relevance}\n"
         f"{body}"
     )
+    meta = {
+        "evidence_id": item.get("evidence_id"),
+        "kind": item.get("kind"),
+        "case_id": item.get("case_id"),
+        "decision_relevance": relevance,
+        "submitted_by": item.get("submitted_by"),
+        "value": item.get("value"),
+        "unit": item.get("unit"),
+        "trend": item.get("trend"),
+        "polarity": item.get("polarity"),
+        "confidence": item.get("confidence"),
+        "weight": item.get("weight"),
+        "narrative": item.get("narrative"),
+        "title": item.get("title"),
+        "source": item.get("source"),
+        "created_at": item.get("created_at"),
+    }
     doc = KnowledgeDocument(
         source=str(item.get("source") or "evidence_intake"),
         title=f"[Evidence] {item.get('title')}",
         content=content,
         category="decision_evidence",
-        metadata_={
-            "evidence_id": item.get("evidence_id"),
-            "kind": item.get("kind"),
-            "case_id": item.get("case_id"),
-            "decision_relevance": relevance,
-            "submitted_by": item.get("submitted_by"),
-        },
+        metadata_=meta,
     )
     db.add(doc)
     await db.commit()
     await db.refresh(doc)
-    await rag_service.build_index(db)
+    try:
+        await rag_service.build_index(db)
+    except Exception:  # noqa: BLE001
+        # Evidence is already committed; RAG rebuild must not fail the API
+        pass
     return str(doc.id)
+
+
+async def _hydrate_evidence_from_db(db: AsyncSession) -> int:
+    """Load persisted decision_evidence rows into the in-memory store (multi-worker safe)."""
+    result = await db.execute(
+        select(KnowledgeDocument)
+        .where(KnowledgeDocument.category == "decision_evidence")
+        .order_by(KnowledgeDocument.created_at.desc())
+        .limit(200)
+    )
+    count = 0
+    for doc in result.scalars().all():
+        meta = dict(doc.metadata_ or {})
+        eid = meta.get("evidence_id") or f"EV-DB-{str(doc.id)[:8]}"
+        kind = meta.get("kind") or "qualitative"
+        payload = {
+            "evidence_id": eid,
+            "kind": kind,
+            "title": meta.get("title") or doc.title.replace("[Evidence] ", "", 1),
+            "case_id": meta.get("case_id"),
+            "source": meta.get("source") or doc.source,
+            "submitted_by": meta.get("submitted_by") or "demo-user-001",
+            "decision_relevance": meta.get("decision_relevance") or "",
+            "weight": meta.get("weight") or 1.0,
+            "created_at": meta.get("created_at")
+            or (doc.created_at.isoformat() if doc.created_at else None),
+        }
+        if kind == "quantitative":
+            payload.update(
+                {
+                    "value": meta.get("value") if meta.get("value") is not None else 0,
+                    "unit": meta.get("unit") or "index",
+                    "trend": meta.get("trend") or "flat",
+                }
+            )
+        else:
+            payload.update(
+                {
+                    "narrative": meta.get("narrative") or doc.content,
+                    "polarity": meta.get("polarity") or "mixed",
+                    "confidence": meta.get("confidence") or 0.75,
+                }
+            )
+        try:
+            evidence_store.upsert(payload)
+            count += 1
+        except ValueError:
+            continue
+    return count
 
 router = APIRouter()
 
@@ -111,7 +175,14 @@ async def tempest_decision_cases() -> list[dict]:
 
 
 @router.post("/tempest/decision/transform")
-async def tempest_decision_transform(body: DecisionTransformRequest) -> dict:
+async def tempest_decision_transform(
+    body: DecisionTransformRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    try:
+        await _hydrate_evidence_from_db(db)
+    except Exception:  # noqa: BLE001
+        pass
     return decision_engine.transform(body.query, case_id=body.case_id)
 
 
@@ -120,38 +191,72 @@ async def list_evidence(
     case_id: str | None = Query(default=None),
     kind: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
+    try:
+        await _hydrate_evidence_from_db(db)
+    except Exception:  # noqa: BLE001
+        pass
     return evidence_store.list(case_id=case_id, kind=kind, limit=limit)
 
 
 @router.post("/tempest/evidence")
 async def ingest_evidence(body: EvidenceIngestRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    data = body.model_dump(exclude={"persist"})
+    # Allow title-only qualitative notes
+    if data.get("kind") != "quantitative" and not data.get("narrative"):
+        data["narrative"] = data.get("title") or data.get("decision_relevance") or "（本文なし）"
     try:
-        item = evidence_store.add(body.model_dump(exclude={"persist"}))
+        item = evidence_store.add(data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     doc_id = None
+    persist_error = None
     if body.persist:
-        doc_id = await _persist_evidence(db, item)
-    return {"ok": True, "evidence": item, "knowledge_id": doc_id}
+        try:
+            doc_id = await _persist_evidence(db, item)
+        except Exception as exc:  # noqa: BLE001
+            persist_error = str(exc)
+    return {
+        "ok": True,
+        "evidence": item,
+        "knowledge_id": doc_id,
+        "persist_error": persist_error,
+    }
 
 
 @router.post("/tempest/evidence/text")
 async def ingest_evidence_text(body: EvidenceFreeTextRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="本文を入力してください")
+    try:
+        await _hydrate_evidence_from_db(db)
+    except Exception:  # noqa: BLE001
+        pass
     item = evidence_store.ingest_free_text(
-        text=body.text,
+        text=text,
         case_id=body.case_id,
         source=body.source,
         submitted_by=body.submitted_by,
         decision_relevance=body.decision_relevance,
     )
     doc_id = None
+    persist_error = None
     if body.persist:
-        doc_id = await _persist_evidence(db, item)
-    result: dict = {"ok": True, "evidence": item, "knowledge_id": doc_id}
+        try:
+            doc_id = await _persist_evidence(db, item)
+        except Exception as exc:  # noqa: BLE001
+            persist_error = str(exc)
+    result: dict = {
+        "ok": True,
+        "evidence": item,
+        "knowledge_id": doc_id,
+        "persist_error": persist_error,
+    }
     if body.run_transform:
         result["transform"] = decision_engine.transform(
-            body.text,
+            text,
             case_id=body.case_id,
             include_ingested=True,
         )
@@ -350,6 +455,11 @@ async def dashboard(
         ]
 
     users = await db.execute(select(User).order_by(User.created_at.asc()).limit(20))
+
+    try:
+        await _hydrate_evidence_from_db(db)
+    except Exception:  # noqa: BLE001
+        pass
 
     return {
         "user": {

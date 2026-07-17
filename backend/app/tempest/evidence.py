@@ -17,6 +17,12 @@ class EvidenceIntakeStore:
     def __init__(self) -> None:
         self._items: dict[str, dict[str, Any]] = {}
 
+    def upsert(self, item: dict[str, Any]) -> dict[str, Any]:
+        """Insert or replace by evidence_id (used when hydrating from DB)."""
+        normalized = self._normalize({**item, "evidence_id": item.get("evidence_id")})
+        self._items[normalized["evidence_id"]] = normalized
+        return normalized
+
     def list(
         self,
         *,

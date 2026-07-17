@@ -445,8 +445,9 @@
           <button type="submit" class="primary" id="evSubmitBtn">情報を投入</button>
           <button type="button" id="evSubmitAndRun">投入して意思決定を再実行</button>
           <button type="button" id="evQuickText">自由文として投入</button>
-          <span id="evStatus" style="font-size:.85rem;color:var(--muted)"></span>
+          <span id="evStatus" role="status" style="font-size:.85rem;color:var(--muted);font-weight:600"></span>
         </div>
+        <p style="margin:0;font-size:.8rem;color:var(--muted)">※ 定性は「本文」または「タイトル」のどちらか必須。自由文投入は本文必須。</p>
       </form>
       <div style="margin-top:1rem">
         <div style="font-size:.8rem;font-weight:700;letter-spacing:.08em;color:#6366f1;margin-bottom:.4rem">INGESTED EVIDENCE</div>
@@ -1100,26 +1101,53 @@ FastAPI
       box.style.display = kind === "quantitative" ? "grid" : "none";
     }
 
-    async function submitEvidence({ freeText = false, runTransform = false } = {}) {
+    function setEvidenceStatus(msg, tone = "muted") {
       const status = document.getElementById("evStatus");
-      const kind = document.getElementById("evKind").value;
-      const caseId = document.getElementById("evCase").value || null;
-      const title = document.getElementById("evTitle").value.trim();
-      const relevance = document.getElementById("evRelevance").value.trim();
-      const narrative = document.getElementById("evNarrative").value.trim();
-      status.textContent = "投入中...";
+      if (!status) return;
+      status.textContent = msg || "";
+      const colors = { muted: "var(--muted)", ok: "#047857", err: "#b91c1c", busy: "#0369a1" };
+      status.style.color = colors[tone] || colors.muted;
+    }
+
+    function setEvidenceBusy(busy) {
+      ["evSubmitBtn", "evSubmitAndRun", "evQuickText"].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = !!busy;
+      });
+    }
+
+    async function submitEvidence({ freeText = false, runTransform = false } = {}) {
+      const kindEl = document.getElementById("evKind");
+      const narrativeEl = document.getElementById("evNarrative");
+      if (!kindEl || !narrativeEl) {
+        setEvidenceStatus("フォーム要素が見つかりません", "err");
+        return false;
+      }
+      const kind = kindEl.value;
+      const caseId = document.getElementById("evCase")?.value || null;
+      const title = (document.getElementById("evTitle")?.value || "").trim();
+      const relevance = (document.getElementById("evRelevance")?.value || "").trim();
+      const narrative = narrativeEl.value.trim();
+      const content = narrative || title || relevance;
+
+      setEvidenceBusy(true);
+      setEvidenceStatus("投入中...", "busy");
+      narrativeEl.style.borderColor = "#cbd5e1";
       try {
         let res;
         if (freeText) {
-          if (!narrative) throw new Error("本文を入力してください");
+          if (!content) {
+            narrativeEl.style.borderColor = "#b91c1c";
+            throw new Error("本文（またはタイトル）を入力してください");
+          }
           res = await fetch(`${API}/api/v1/tempest/evidence/text`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              text: narrative,
-              case_id: caseId,
+              text: content,
+              case_id: caseId || null,
               decision_relevance: relevance,
-              submitted_by: externalIdEl.value.trim() || "demo-user-001",
+              submitted_by: (externalIdEl?.value || "").trim() || "demo-user-001",
               persist: true,
               run_transform: runTransform,
             }),
@@ -1128,22 +1156,23 @@ FastAPI
           const payload = {
             kind,
             title: title || (narrative ? narrative.slice(0, 40) : "意思決定エビデンス"),
-            case_id: caseId,
+            case_id: caseId || null,
             decision_relevance: relevance,
-            submitted_by: externalIdEl.value.trim() || "demo-user-001",
+            submitted_by: (externalIdEl?.value || "").trim() || "demo-user-001",
             persist: true,
-            polarity: document.getElementById("evPolarity").value,
-            narrative: narrative || null,
+            polarity: document.getElementById("evPolarity")?.value || "mixed",
+            narrative: narrative || title || relevance || null,
           };
           if (kind === "quantitative") {
-            const value = document.getElementById("evValue").value;
-            if (value === "") throw new Error("定量値を入力してください");
+            const value = document.getElementById("evValue")?.value;
+            if (value === "" || value == null) throw new Error("定量値を入力してください");
             payload.value = Number(value);
-            payload.unit = document.getElementById("evUnit").value;
-            payload.trend = document.getElementById("evTrend").value;
+            payload.unit = document.getElementById("evUnit")?.value || "ratio";
+            payload.trend = document.getElementById("evTrend")?.value || "flat";
             payload.narrative = null;
-          } else if (!narrative) {
-            throw new Error("叙述本文を入力してください");
+          } else if (!payload.narrative) {
+            narrativeEl.style.borderColor = "#b91c1c";
+            throw new Error("本文またはタイトルを入力してください");
           }
           res = await fetch(`${API}/api/v1/tempest/evidence`, {
             method: "POST",
@@ -1151,22 +1180,33 @@ FastAPI
             body: JSON.stringify(payload),
           });
         }
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          let detail = await res.text();
+          try {
+            const j = JSON.parse(detail);
+            detail = j.detail ? (typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail)) : detail;
+          } catch (_) { /* keep text */ }
+          throw new Error(detail || `HTTP ${res.status}`);
+        }
         const data = await res.json();
-        status.textContent = `投入完了: ${data.evidence?.evidence_id || "ok"}`;
+        const eid = data.evidence?.evidence_id || "ok";
+        const persistNote = data.persist_error ? `（DB保存警告: ${data.persist_error}）` : "";
+        setEvidenceStatus(`投入完了: ${eid}${persistNote}`, data.persist_error ? "err" : "ok");
         if (runTransform && !data.transform) {
           const tRes = await fetch(`${API}/api/v1/tempest/decision/transform`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               query: "投入エビデンスを反映して意思決定構造を再計算して",
-              case_id: caseId,
+              case_id: caseId || null,
             }),
           });
           if (tRes.ok) {
             const tr = await tRes.json();
             showPackage({ type: "decision_structure", ...tr });
             appendMessage("assistant", tr.message || "意思決定構造を更新しました", "decision_structure");
+          } else {
+            setEvidenceStatus(`投入は完了しましたが再実行に失敗: ${await tRes.text()}`, "err");
           }
         } else if (data.transform) {
           showPackage({ type: "decision_structure", ...data.transform });
@@ -1179,10 +1219,16 @@ FastAPI
           });
         }
         await loadDashboard();
+        return true;
       } catch (err) {
-        status.textContent = err.message || "投入に失敗しました";
+        setEvidenceStatus(err.message || "投入に失敗しました", "err");
+        return false;
+      } finally {
+        setEvidenceBusy(false);
       }
     }
+    // Expose for inline handlers / console debugging
+    window.submitEvidence = submitEvidence;
 
     function renderPackages(packages) {
       const root = document.getElementById("packageCards");
@@ -1467,12 +1513,15 @@ FastAPI
     document.getElementById("evKind")?.addEventListener("change", toggleEvidenceFields);
     document.getElementById("evidenceForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
+      e.stopPropagation();
       await submitEvidence({ freeText: false, runTransform: false });
     });
-    document.getElementById("evSubmitAndRun")?.addEventListener("click", async () => {
+    document.getElementById("evSubmitAndRun")?.addEventListener("click", async (e) => {
+      e.preventDefault();
       await submitEvidence({ freeText: false, runTransform: true });
     });
-    document.getElementById("evQuickText")?.addEventListener("click", async () => {
+    document.getElementById("evQuickText")?.addEventListener("click", async (e) => {
+      e.preventDefault();
       await submitEvidence({ freeText: true, runTransform: false });
     });
     toggleEvidenceFields();
