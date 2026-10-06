@@ -1,5 +1,16 @@
 # TempestAI｜金融AIパッケージ
 
+
+## Portfolio Overview
+
+| | |
+|---|---|
+| **Problem** | Financial decisions depend on fragmented quantitative and qualitative evidence that is difficult to evaluate consistently. |
+| **Solution** | Enterprise financial-AI suite for valuation, lending decisions, business matching, knowledge retrieval and decision support. |
+| **Architecture** | Web UI → FastAPI → LangGraph orchestration → domain engines → quantitative/qualitative evidence → PostgreSQL/FAISS. |
+| **Differentiators** | Evidence-led decision structure, quantitative + qualitative integration, scenario/alternative-hypothesis support and reusable financial workflows. |
+| **Stack** | Python · FastAPI · LangGraph · PostgreSQL · FAISS · GenAI · Time-series / ML |
+
 銀行・証券など金融機関向けに、生成AIによる業務改善・意思決定支援を提供する Fintech パッケージです。
 **金融・経済情報に眠る定性・定量データを統合し、業務効率化ではなく意思決定構造そのものを変革**します。
 
